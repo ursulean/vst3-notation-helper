@@ -69,35 +69,41 @@ void NotationView::drawStaff(VSTGUI::CDrawContext *context,
                       VSTGUI::CPoint(rect.getWidth() - RIGHT_MARGIN, y));
   }
 
-  // Draw clefs - position them relative to their respective staves
-  double trebleClefY = middleCPosition - 24; // Around B4 line
-  double bassClefY = middleCPosition + 16;   // Around F3 line
-  drawTrebleClef(context, LEFT_MARGIN - 25, trebleClefY, 1.0);
-  drawBassClef(context, LEFT_MARGIN - 25, bassClefY, 1.0);
+  // Draw clefs - position them properly centered on their respective staves
+  // Treble clef should be centered on G4 line (2nd line from bottom) = -16 from
+  // middle C
+  double trebleClefY = middleCPosition - 16; // G4 line center
+  // Bass clef should be centered on F3 line (4th line from top) = +24 from
+  // middle C
+  double bassClefY = middleCPosition + 24; // F3 line center
+  drawTrebleClef(context, LEFT_MARGIN - 30, trebleClefY - 20, 1.0);
+  drawBassClef(context, LEFT_MARGIN - 30, bassClefY - 12, 1.0);
 }
 
 //------------------------------------------------------------------------
 void NotationView::drawTrebleClef(VSTGUI::CDrawContext *context, double x,
                                   double y, double scale) {
-  // Very simple treble clef - just draw "♪" or "G"
-  context->setFont(VSTGUI::kSystemFont);
+  // Draw treble clef using Unicode musical symbol with larger font
+  auto font = VSTGUI::makeOwned<VSTGUI::CFontDesc>("Arial", 24);
+  context->setFont(font);
   context->setFontColor(VSTGUI::CColor(0, 0, 0, 255));
 
-  // CRect takes (left, top, right, bottom)
-  VSTGUI::CRect textRect(x, y + 15, x + 20, y + 30);
-  context->drawString("G", textRect);
+  // Draw Unicode treble clef symbol
+  VSTGUI::CRect textRect(x, y, x + 30, y + 40);
+  context->drawString("𝄞", textRect); // Unicode treble clef
 }
 
 //------------------------------------------------------------------------
 void NotationView::drawBassClef(VSTGUI::CDrawContext *context, double x,
                                 double y, double scale) {
-  // Very simple bass clef - just draw "F"
-  context->setFont(VSTGUI::kSystemFont);
+  // Draw bass clef using Unicode musical symbol with larger font
+  auto font = VSTGUI::makeOwned<VSTGUI::CFontDesc>("Arial", 24);
+  context->setFont(font);
   context->setFontColor(VSTGUI::CColor(0, 0, 0, 255));
 
-  // CRect takes (left, top, right, bottom)
-  VSTGUI::CRect textRect(x, y + 15, x + 20, y + 30);
-  context->drawString("F", textRect);
+  // Draw Unicode bass clef symbol
+  VSTGUI::CRect textRect(x, y, x + 30, y + 40);
+  context->drawString("𝄢", textRect); // Unicode bass clef
 }
 
 //------------------------------------------------------------------------
@@ -125,27 +131,98 @@ void NotationView::drawNotes(VSTGUI::CDrawContext *context,
     isSharp.push_back(sharp);
   }
 
-  // Draw each note
+  // Group notes by their positioning requirements
+  std::vector<std::vector<int>> noteGroups =
+      groupNotesByPosition(sortedNotes, staffPositions, needsAccidental);
+
+  // Draw each group of notes
   double baseX = LEFT_MARGIN + CLEF_WIDTH + 20;
+  double groupOffsetX = 0;
 
-  for (size_t i = 0; i < sortedNotes.size(); i++) {
-    double xOffset = getHorizontalOffset(i, staffPositions);
-    double noteX = baseX + xOffset;
-    double noteY = staffPositions[i];
+  for (const auto &group : noteGroups) {
+    if (group.size() == 1) {
+      // Single note - draw at center position
+      int noteIndex = group[0];
+      double noteX = baseX + groupOffsetX;
+      double noteY = staffPositions[noteIndex];
 
-    // Draw ledger lines if needed
-    if (needsLedgerLine(staffPositions[i], isOnTrebleStaff[i])) {
-      drawLedgerLine(context, noteX, noteY,
-                     20); // Center on note, slightly shorter
+      // Draw ledger lines if needed
+      if (needsLedgerLine(staffPositions[noteIndex],
+                          isOnTrebleStaff[noteIndex])) {
+        drawLedgerLine(context, noteX, noteY, 20);
+      }
+
+      // Draw accidental if needed
+      if (needsAccidental[noteIndex]) {
+        drawAccidental(context, noteX - 25, noteY, isSharp[noteIndex]);
+      }
+
+      // Draw the note
+      drawNote(context, noteX, noteY, true);
+    } else {
+      // Multiple notes - position in maximum 2 columns (like real musical
+      // notation)
+      double groupCenterX = baseX + groupOffsetX;
+
+      if (needsSideBySidePositioning(group, staffPositions, needsAccidental)) {
+        // Side-by-side positioning: maximum 2 columns like real notation
+        // Left column (where stem would be on left) and right column (where
+        // stem would be on right)
+
+        for (size_t i = 0; i < group.size(); i++) {
+          int noteIndex = group[i];
+          double noteY = staffPositions[noteIndex];
+
+          // Determine which column: alternate between left and right
+          // Left column = -NOTE_WIDTH*0.4, Right column = +NOTE_WIDTH*0.4
+          double noteX;
+          if (i % 2 == 0) {
+            noteX = groupCenterX - NOTE_WIDTH * 0.4; // Left column
+          } else {
+            noteX = groupCenterX + NOTE_WIDTH * 0.4; // Right column
+          }
+
+          // Draw ledger lines if needed
+          if (needsLedgerLine(staffPositions[noteIndex],
+                              isOnTrebleStaff[noteIndex])) {
+            drawLedgerLine(context, noteX, noteY, 20);
+          }
+
+          // Draw accidental if needed with better positioning to avoid
+          // collisions
+          if (needsAccidental[noteIndex]) {
+            drawAccidental(context, noteX - 25, noteY, isSharp[noteIndex]);
+          }
+
+          // Draw the note
+          drawNote(context, noteX, noteY, true);
+        }
+      } else {
+        // Stacked positioning: all notes at same X position
+        for (size_t i = 0; i < group.size(); i++) {
+          int noteIndex = group[i];
+          double noteY = staffPositions[noteIndex];
+          double noteX = groupCenterX;
+
+          // Draw ledger lines if needed
+          if (needsLedgerLine(staffPositions[noteIndex],
+                              isOnTrebleStaff[noteIndex])) {
+            drawLedgerLine(context, noteX, noteY, 20);
+          }
+
+          // Draw accidental if needed
+          if (needsAccidental[noteIndex]) {
+            drawAccidental(context, noteX - 25, noteY, isSharp[noteIndex]);
+          }
+
+          // Draw the note
+          drawNote(context, noteX, noteY, true);
+        }
+      }
     }
 
-    // Draw accidental if needed
-    if (needsAccidental[i]) {
-      drawAccidental(context, noteX - 20, noteY, isSharp[i]);
-    }
-
-    // Draw the note
-    drawNote(context, noteX, noteY, true);
+    // Move to next group position
+    groupOffsetX += 40; // Space between chord groups
   }
 }
 
@@ -305,6 +382,62 @@ NotationView::getHorizontalOffset(int noteIndex,
 void NotationView::initializeNoteMappings() {
   // This method could be used to pre-calculate note mappings
   // For now, we calculate positions dynamically in getStaffPosition
+}
+
+//------------------------------------------------------------------------
+std::vector<std::vector<int>>
+NotationView::groupNotesByPosition(const std::vector<int> &sortedNotes,
+                                   const std::vector<double> &staffPositions,
+                                   const std::vector<bool> &needsAccidental) {
+  std::vector<std::vector<int>> groups;
+
+  if (sortedNotes.empty())
+    return groups;
+
+  // For now, treat all simultaneously played notes as one group
+  // This creates a chord where notes are stacked or positioned appropriately
+  std::vector<int> allNotes;
+  for (size_t i = 0; i < sortedNotes.size(); i++) {
+    allNotes.push_back(i); // Store indices into the sorted arrays
+  }
+
+  groups.push_back(allNotes);
+  return groups;
+}
+
+//------------------------------------------------------------------------
+bool NotationView::needsSideBySidePositioning(
+    const std::vector<int> &group, const std::vector<double> &staffPositions,
+    const std::vector<bool> &needsAccidental) {
+  if (group.size() <= 1)
+    return false;
+
+  // Check if any notes are on the same staff position (same Y coordinate)
+  // or if notes are on adjacent staff positions
+  for (size_t i = 0; i < group.size(); i++) {
+    for (size_t j = i + 1; j < group.size(); j++) {
+      int idx1 = group[i];
+      int idx2 = group[j];
+
+      double pos1 = staffPositions[idx1];
+      double pos2 = staffPositions[idx2];
+      double posDiff = std::abs(pos1 - pos2);
+
+      // Same position (like C and C#) - need side-by-side
+      if (posDiff < 2.0) {
+        return true;
+      }
+
+      // Adjacent staff positions (line and space) - need side-by-side
+      if (posDiff >= 3.5 &&
+          posDiff <= 4.5) { // Half staff line height = 4 pixels
+        return true;
+      }
+    }
+  }
+
+  // Otherwise, stack the notes
+  return false;
 }
 
 //------------------------------------------------------------------------

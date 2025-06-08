@@ -49,6 +49,15 @@ private:
   double getHorizontalOffset(int noteIndex,
                              const std::vector<double> &staffPositions);
 
+  // Smart note positioning helpers
+  std::vector<std::vector<int>>
+  groupNotesByPosition(const std::vector<int> &sortedNotes,
+                       const std::vector<double> &staffPositions,
+                       const std::vector<bool> &needsAccidental);
+  bool needsSideBySidePositioning(const std::vector<int> &group,
+                                  const std::vector<double> &staffPositions,
+                                  const std::vector<bool> &needsAccidental);
+
   // Note mapping data
   void initializeNoteMappings();
 
@@ -63,9 +72,8 @@ private:
       STAFF_LINE_HEIGHT * 4.0; // 4 spaces between 5 lines
   static constexpr double GRAND_STAFF_GAP =
       STAFF_LINE_HEIGHT; // Just one staff line height between staves
-  static constexpr double NOTE_WIDTH =
-      8.0; // Slightly smaller for better proportion
-  static constexpr double NOTE_HEIGHT = 5.0; // About half of staff line spacing
+  static constexpr double NOTE_WIDTH = 10.0; // Slightly bigger noteheads
+  static constexpr double NOTE_HEIGHT = 6.5; // Proportional increase
   static constexpr double CLEF_WIDTH = 40.0;
   static constexpr double LEFT_MARGIN = 50.0;
   static constexpr double RIGHT_MARGIN = 20.0;
