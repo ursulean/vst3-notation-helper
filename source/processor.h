@@ -4,7 +4,12 @@
 
 #pragma once
 
+#include "pluginterfaces/vst/ivstevents.h"
+#include "pluginterfaces/vst/ivstmidicontrollers.h"
 #include "public.sdk/source/vst/vstaudioeffect.h"
+#include <mutex>
+#include <set>
+#include <vector>
 
 namespace Ursulean {
 
@@ -52,8 +57,22 @@ public:
   Steinberg::tresult PLUGIN_API getState(Steinberg::IBStream *state)
       SMTG_OVERRIDE;
 
+  // Get currently active notes for the UI
+  std::vector<int> getActiveNotes() const {
+    std::lock_guard<std::mutex> lock(activeNotesMutex);
+    return std::vector<int>(activeNotes.begin(), activeNotes.end());
+  }
+
   //------------------------------------------------------------------------
 protected:
+  void processMidiEvents(Steinberg::Vst::IEventList *events);
+  void handleNoteOn(int pitch, int velocity);
+  void handleNoteOff(int pitch);
+
+private:
+  std::set<int> activeNotes;           // Currently pressed MIDI notes (0-127)
+  mutable std::mutex activeNotesMutex; // Protect access to activeNotes
+  bool activeNotesChanged = false;     // Flag to indicate notes have changed
 };
 
 //------------------------------------------------------------------------

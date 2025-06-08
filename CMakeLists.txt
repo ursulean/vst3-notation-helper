@@ -14,7 +14,7 @@ project(NotationChordHelper
     # This is your plug-in version number. Change it here only.
     # Version number symbols usable in C++ can be found in
     # source/version.h and ${PROJECT_BINARY_DIR}/projectversion.h.
-    VERSION 1.0.0.0 
+    VERSION 1.0.0.0
     DESCRIPTION "NotationChordHelper VST 3 Plug-in"
 )
 
@@ -30,6 +30,10 @@ smtg_add_vst3plugin(NotationChordHelper
     source/processor.cpp
     source/controller.h
     source/controller.cpp
+    source/notation_view.h
+    source/notation_view.cpp
+    source/notation_editor.h
+    source/notation_editor.cpp
     source/entry.cpp
 )
 
@@ -37,28 +41,28 @@ smtg_add_vst3plugin(NotationChordHelper
 if(SMTG_ENABLE_VSTGUI_SUPPORT)
     target_sources(NotationChordHelper
         PRIVATE
-            resource/editor.uidesc
+        resource/editor.uidesc
     )
     target_link_libraries(NotationChordHelper
         PRIVATE
-            vstgui_support
+        vstgui_support
     )
     smtg_target_add_plugin_resources(NotationChordHelper
         RESOURCES
-            "resource/editor.uidesc"
+        "resource/editor.uidesc"
     )
 endif(SMTG_ENABLE_VSTGUI_SUPPORT)
 # -------------------
 
-smtg_target_add_plugin_snapshots (NotationChordHelper
+smtg_target_add_plugin_snapshots(NotationChordHelper
     RESOURCES
-        resource/DEA1730E1F515AF1B8D0AA160EA0F195_snapshot.png
-        resource/DEA1730E1F515AF1B8D0AA160EA0F195_snapshot_2.0x.png
+    resource/DEA1730E1F515AF1B8D0AA160EA0F195_snapshot.png
+    resource/DEA1730E1F515AF1B8D0AA160EA0F195_snapshot_2.0x.png
 )
 
 target_link_libraries(NotationChordHelper
     PRIVATE
-        sdk
+    sdk
 )
 
 smtg_target_configure_version_file(NotationChordHelper)
@@ -73,7 +77,7 @@ if(SMTG_MAC)
         "--pluginfolder;$(BUILT_PRODUCTS_DIR)"
     )
 elseif(SMTG_WIN)
-    target_sources(NotationChordHelper PRIVATE 
+    target_sources(NotationChordHelper PRIVATE
         resource/win32resource.rc
     )
     if(MSVC)

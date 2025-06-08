@@ -6,6 +6,7 @@
 #include "cids.h"
 
 #include "base/source/fstreamer.h"
+#include "pluginterfaces/vst/ivstevents.h"
 #include "pluginterfaces/vst/ivstparameterchanges.h"
 
 using namespace Steinberg;
@@ -55,14 +56,40 @@ tresult PLUGIN_API NotationChordHelperProcessor::terminate() {
 //------------------------------------------------------------------------
 tresult PLUGIN_API NotationChordHelperProcessor::setActive(TBool state) {
   //--- called when the Plug-in is enable/disable (On/Off) -----
+  if (!state) {
+    // Clear active notes when plugin is deactivated
+    std::lock_guard<std::mutex> lock(activeNotesMutex);
+    activeNotes.clear();
+  }
   return AudioEffect::setActive(state);
 }
 
 //------------------------------------------------------------------------
 tresult PLUGIN_API
 NotationChordHelperProcessor::process(Vst::ProcessData &data) {
-  //--- First : Read inputs parameter changes-----------
+  //--- Process MIDI events first
+  if (data.inputEvents) {
+    processMidiEvents(data.inputEvents);
+  }
 
+  // Send parameter updates if notes changed
+  if (activeNotesChanged && data.outputParameterChanges) {
+    int32 index = 0;
+    auto *paramQueue = data.outputParameterChanges->addParameterData(
+        0, index); // Use parameter ID 0 for active notes
+    if (paramQueue) {
+      // Check active notes with proper locking
+      double paramValue = 0.0;
+      {
+        std::lock_guard<std::mutex> lock(activeNotesMutex);
+        paramValue = activeNotes.empty() ? 0.0 : 1.0;
+        activeNotesChanged = false;
+      }
+      paramQueue->addPoint(0, paramValue, index);
+    }
+  }
+
+  //--- First : Read inputs parameter changes-----------
   // if (data.inputParameterChanges) {
   //   int32 numParamsChanged = data.inputParameterChanges->getParameterCount();
   //   for (int32 index = 0; index < numParamsChanged; index++) {
@@ -125,6 +152,48 @@ NotationChordHelperProcessor::process(Vst::ProcessData &data) {
 }
 
 //------------------------------------------------------------------------
+void NotationChordHelperProcessor::processMidiEvents(Vst::IEventList *events) {
+  if (!events)
+    return;
+
+  int32 numEvents = events->getEventCount();
+  for (int32 i = 0; i < numEvents; i++) {
+    Vst::Event event;
+    if (events->getEvent(i, event) == kResultOk) {
+      switch (event.type) {
+      case Vst::Event::kNoteOnEvent:
+        if (event.noteOn.velocity > 0) {
+          handleNoteOn(event.noteOn.pitch, event.noteOn.velocity);
+        } else {
+          // Velocity 0 is treated as note off
+          handleNoteOff(event.noteOn.pitch);
+        }
+        break;
+      case Vst::Event::kNoteOffEvent:
+        handleNoteOff(event.noteOff.pitch);
+        break;
+      default:
+        break;
+      }
+    }
+  }
+}
+
+//------------------------------------------------------------------------
+void NotationChordHelperProcessor::handleNoteOn(int pitch, int velocity) {
+  std::lock_guard<std::mutex> lock(activeNotesMutex);
+  activeNotes.insert(pitch);
+  activeNotesChanged = true;
+}
+
+//------------------------------------------------------------------------
+void NotationChordHelperProcessor::handleNoteOff(int pitch) {
+  std::lock_guard<std::mutex> lock(activeNotesMutex);
+  activeNotes.erase(pitch);
+  activeNotesChanged = true;
+}
+
+//------------------------------------------------------------------------
 tresult PLUGIN_API
 NotationChordHelperProcessor::setupProcessing(Vst::ProcessSetup &newSetup) {
   //--- called before any processing ----
@@ -148,7 +217,27 @@ NotationChordHelperProcessor::canProcessSampleSize(int32 symbolicSampleSize) {
 //------------------------------------------------------------------------
 tresult PLUGIN_API NotationChordHelperProcessor::setState(IBStream *state) {
   // called when we load a preset, the model has to be reloaded
+  if (!state)
+    return kResultFalse;
+
   IBStreamer streamer(state, kLittleEndian);
+
+  // Read active notes from state
+  int32 numNotes = 0;
+  if (streamer.readInt32(numNotes) == kResultFalse)
+    return kResultFalse;
+
+  std::lock_guard<std::mutex> lock(activeNotesMutex);
+  activeNotes.clear();
+
+  for (int32 i = 0; i < numNotes; i++) {
+    int32 note = 0;
+    if (streamer.readInt32(note) == kResultFalse)
+      return kResultFalse;
+    if (note >= 0 && note <= 127) {
+      activeNotes.insert(note);
+    }
+  }
 
   return kResultOk;
 }
@@ -156,7 +245,24 @@ tresult PLUGIN_API NotationChordHelperProcessor::setState(IBStream *state) {
 //------------------------------------------------------------------------
 tresult PLUGIN_API NotationChordHelperProcessor::getState(IBStream *state) {
   // here we need to save the model
+  if (!state)
+    return kResultFalse;
+
   IBStreamer streamer(state, kLittleEndian);
+
+  // Write active notes to state
+  std::lock_guard<std::mutex> lock(activeNotesMutex);
+
+  // Write number of active notes
+  int32 numNotes = static_cast<int32>(activeNotes.size());
+  if (streamer.writeInt32(numNotes) == kResultFalse)
+    return kResultFalse;
+
+  // Write each note
+  for (int note : activeNotes) {
+    if (streamer.writeInt32(static_cast<int32>(note)) == kResultFalse)
+      return kResultFalse;
+  }
 
   return kResultOk;
 }

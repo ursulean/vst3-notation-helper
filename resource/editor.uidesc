@@ -4,7 +4,7 @@
 	</fonts>
 	<colors>
 	</colors>
-	<template background-color="~ BlackCColor" background-color-draw-style="filled and stroked" class="CViewContainer" mouse-enabled="true" name="view" opacity="1" origin="0, 0" size="300, 300" transparent="false" wants-focus="false"/>
+	<template background-color="~ WhiteCColor" background-color-draw-style="filled and stroked" class="CViewContainer" mouse-enabled="true" name="view" opacity="1" origin="0, 0" size="600, 400" transparent="false" wants-focus="false"/>
 	<custom>
 		<attributes name="FocusDrawing"/>
 		<attributes Path="C:/Users/Paul/Desktop/dev/vst3-notation-helper/NotationChordHelper/resource/editor.uidesc" name="VST3Editor"/>
