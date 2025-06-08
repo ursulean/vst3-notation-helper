@@ -49,58 +49,55 @@ void NotationView::drawStaff(VSTGUI::CDrawContext *context,
   context->setFrameColor(VSTGUI::CColor(0, 0, 0, 255)); // Black lines
 
   double centerY = rect.getHeight() / 2.0;
-  double trebleStaffTop = centerY - GRAND_STAFF_GAP / 2.0 - STAFF_SPACING;
-  double bassStaffTop = centerY + GRAND_STAFF_GAP / 2.0;
+  double middleCPosition = centerY;
 
-  // Draw treble staff lines (5 lines)
+  // Treble staff lines (bottom to top): E4, G4, B4, D5, F5
+  // Positioned at: -8, -16, -24, -32, -40 pixels from middle C
   for (int i = 0; i < 5; i++) {
-    double y = trebleStaffTop + i * STAFF_LINE_HEIGHT;
+    double y =
+        middleCPosition - (8 + i * 8); // E4 line, then up by 8 pixels each
     context->drawLine(VSTGUI::CPoint(LEFT_MARGIN, y),
                       VSTGUI::CPoint(rect.getWidth() - RIGHT_MARGIN, y));
   }
 
-  // Draw bass staff lines (5 lines)
+  // Bass staff lines (top to bottom): A3, F3, D3, B2, G2
+  // Positioned at: +8, +16, +24, +32, +40 pixels from middle C
   for (int i = 0; i < 5; i++) {
-    double y = bassStaffTop + i * STAFF_LINE_HEIGHT;
+    double y =
+        middleCPosition + (8 + i * 8); // A3 line, then down by 8 pixels each
     context->drawLine(VSTGUI::CPoint(LEFT_MARGIN, y),
                       VSTGUI::CPoint(rect.getWidth() - RIGHT_MARGIN, y));
   }
 
-  // Draw clefs
-  drawTrebleClef(context, LEFT_MARGIN - 25, trebleStaffTop, 1.0);
-  drawBassClef(context, LEFT_MARGIN - 25, bassStaffTop, 1.0);
+  // Draw clefs - position them relative to their respective staves
+  double trebleClefY = middleCPosition - 24; // Around B4 line
+  double bassClefY = middleCPosition + 16;   // Around F3 line
+  drawTrebleClef(context, LEFT_MARGIN - 25, trebleClefY, 1.0);
+  drawBassClef(context, LEFT_MARGIN - 25, bassClefY, 1.0);
 }
 
 //------------------------------------------------------------------------
 void NotationView::drawTrebleClef(VSTGUI::CDrawContext *context, double x,
                                   double y, double scale) {
-  // Simple text-based treble clef representation
-  context->setLineWidth(2.0 * scale);
-  context->setFrameColor(VSTGUI::CColor(0, 0, 0, 255));
-  context->setFillColor(VSTGUI::CColor(0, 0, 0, 255));
-
-  // Draw "𝄞" or simple "G" to represent treble clef
+  // Very simple treble clef - just draw "♪" or "G"
   context->setFont(VSTGUI::kSystemFont);
   context->setFontColor(VSTGUI::CColor(0, 0, 0, 255));
 
-  VSTGUI::CRect textRect(x, y + 10 * scale, 25 * scale, 20 * scale);
-  context->drawString("G", textRect, VSTGUI::kCenterText);
+  // CRect takes (left, top, right, bottom)
+  VSTGUI::CRect textRect(x, y + 15, x + 20, y + 30);
+  context->drawString("G", textRect);
 }
 
 //------------------------------------------------------------------------
 void NotationView::drawBassClef(VSTGUI::CDrawContext *context, double x,
                                 double y, double scale) {
-  // Simple text-based bass clef representation
-  context->setLineWidth(2.0 * scale);
-  context->setFrameColor(VSTGUI::CColor(0, 0, 0, 255));
-  context->setFillColor(VSTGUI::CColor(0, 0, 0, 255));
-
-  // Draw "𝄢" or simple "F" to represent bass clef
+  // Very simple bass clef - just draw "F"
   context->setFont(VSTGUI::kSystemFont);
   context->setFontColor(VSTGUI::CColor(0, 0, 0, 255));
 
-  VSTGUI::CRect textRect(x, y + 10 * scale, 25 * scale, 20 * scale);
-  context->drawString("F", textRect, VSTGUI::kCenterText);
+  // CRect takes (left, top, right, bottom)
+  VSTGUI::CRect textRect(x, y + 15, x + 20, y + 30);
+  context->drawString("F", textRect);
 }
 
 //------------------------------------------------------------------------
@@ -138,7 +135,8 @@ void NotationView::drawNotes(VSTGUI::CDrawContext *context,
 
     // Draw ledger lines if needed
     if (needsLedgerLine(staffPositions[i], isOnTrebleStaff[i])) {
-      drawLedgerLine(context, noteX - 6, noteY, 24);
+      drawLedgerLine(context, noteX, noteY,
+                     20); // Center on note, slightly shorter
     }
 
     // Draw accidental if needed
@@ -157,9 +155,13 @@ void NotationView::drawNote(VSTGUI::CDrawContext *context, double x, double y,
   context->setLineWidth(1.5);
   context->setFrameColor(VSTGUI::CColor(0, 0, 0, 255));
 
-  // Draw note head as an ellipse
-  VSTGUI::CRect noteRect(x - NOTE_WIDTH / 2, y - NOTE_HEIGHT / 2, NOTE_WIDTH,
-                         NOTE_HEIGHT);
+  // Draw note head as an ellipse - CRect takes (left, top, right, bottom)
+  double left = x - NOTE_WIDTH / 2;
+  double top = y - NOTE_HEIGHT / 2;
+  double right = x + NOTE_WIDTH / 2;
+  double bottom = y + NOTE_HEIGHT / 2;
+
+  VSTGUI::CRect noteRect(left, top, right, bottom);
 
   if (filled) {
     context->setFillColor(VSTGUI::CColor(0, 0, 0, 255));
@@ -189,7 +191,8 @@ void NotationView::drawAccidental(VSTGUI::CDrawContext *context, double x,
     // Draw flat symbol (b)
     context->drawLine(VSTGUI::CPoint(x + 2, y - 8),
                       VSTGUI::CPoint(x + 2, y + 4));
-    VSTGUI::CRect flatCurve(x + 2, y - 2, 6, 6);
+    // CRect takes (left, top, right, bottom)
+    VSTGUI::CRect flatCurve(x + 2, y - 2, x + 8, y + 4);
     context->drawEllipse(flatCurve, VSTGUI::kDrawStroked);
   }
 }
@@ -199,6 +202,7 @@ void NotationView::drawLedgerLine(VSTGUI::CDrawContext *context, double x,
                                   double y, double width) {
   context->setLineWidth(1.0);
   context->setFrameColor(VSTGUI::CColor(0, 0, 0, 255));
+  // Draw ledger line centered on the note position
   context->drawLine(VSTGUI::CPoint(x - width / 2, y),
                     VSTGUI::CPoint(x + width / 2, y));
 }
@@ -206,97 +210,85 @@ void NotationView::drawLedgerLine(VSTGUI::CDrawContext *context, double x,
 //------------------------------------------------------------------------
 double NotationView::getStaffPosition(int midiNote, bool &isOnTrebleStaff,
                                       bool &needsAccidental, bool &isSharp) {
-  // Middle C is MIDI note 60
-  // Treble staff: Middle C is one ledger line below the staff
-  // Bass staff: Middle C is one ledger line above the staff
-
+  // Unified grand staff positioning - all notes relative to middle C
   VSTGUI::CRect rect = getViewSize();
   double centerY = rect.getHeight() / 2.0;
-  double trebleStaffTop = centerY - GRAND_STAFF_GAP / 2.0 - STAFF_SPACING;
-  double bassStaffTop = centerY + GRAND_STAFF_GAP / 2.0;
 
-  // Determine which staff to use (split around middle C)
-  isOnTrebleStaff = (midiNote >= 60); // Middle C and above go to treble
+  // Middle C position (the invisible line between treble and bass staves)
+  double middleCPosition = centerY;
 
-  // Calculate position relative to staff
+  // Determine if note needs accidental (black key)
   int noteClass = midiNote % 12;
-  int octave = midiNote / 12;
-
-  // White key positions (C=0, D=1, E=2, F=3, G=4, A=5, B=6)
-  static const int whiteKeyMap[12] = {
-      0, 0, 1, 1, 2, 3,
-      3, 4, 4, 5, 5, 6}; // C, C#, D, D#, E, F, F#, G, G#, A, A#, B
   static const bool isBlackKey[12] = {false, true,  false, true,  false, false,
                                       true,  false, true,  false, true,  false};
-
-  int whiteKeyPosition = whiteKeyMap[noteClass];
   needsAccidental = isBlackKey[noteClass];
   isSharp = needsAccidental; // For simplicity, always use sharps
 
-  if (isOnTrebleStaff) {
-    // Treble staff: Middle C (C4, MIDI 60) is one ledger line below (position
-    // 5) Staff lines are at positions: 0, 1, 2, 3, 4 (bottom to top) Middle C
-    // (C4) is at position 5 (below staff) C5 would be at position -2 (in staff)
+  // For ledger line logic, we still need to know which staff area we're in
+  isOnTrebleStaff = (midiNote >= 60); // Middle C and above go to treble
 
-    double staffPosition;
-    if (midiNote == 60) { // Middle C
-      staffPosition =
-          trebleStaffTop + 5 * STAFF_LINE_HEIGHT; // One line below staff
-    } else {
-      // Calculate relative to Middle C
-      int semitonesFromMiddleC = midiNote - 60;
-      int whiteKeysFromMiddleC = 0;
+  // Calculate staff position relative to middle C
+  // Each white key step = half staff line height (4 pixels)
+  int semitonesFromMiddleC = midiNote - 60; // Middle C = MIDI 60
+  int whiteKeyStepsFromMiddleC = 0;
 
-      // Count white keys from middle C
-      for (int i = 60; i != midiNote; i += (midiNote > 60 ? 1 : -1)) {
-        if (!isBlackKey[i % 12]) {
-          whiteKeysFromMiddleC += (midiNote > 60 ? 1 : -1);
-        }
+  // Count white key steps from middle C
+  static const bool isWhiteKey[12] = {true,  false, true,  false, true,  true,
+                                      false, true,  false, true,  false, true};
+
+  if (semitonesFromMiddleC > 0) {
+    // Going up from middle C
+    for (int i = 1; i <= semitonesFromMiddleC; i++) {
+      int noteIndex = (60 + i) % 12;
+      if (isWhiteKey[noteIndex]) {
+        whiteKeyStepsFromMiddleC++;
       }
-
-      staffPosition = trebleStaffTop +
-                      (5 - whiteKeysFromMiddleC) * (STAFF_LINE_HEIGHT / 2.0);
     }
-
-    return staffPosition;
-  } else {
-    // Bass staff: Middle C is one ledger line above the staff
-    double staffPosition;
-    if (midiNote == 60) {                               // Middle C
-      staffPosition = bassStaffTop - STAFF_LINE_HEIGHT; // One line above staff
-    } else {
-      // Calculate relative to Middle C
-      int whiteKeysFromMiddleC = 0;
-
-      // Count white keys from middle C
-      for (int i = 60; i != midiNote; i += (midiNote > 60 ? 1 : -1)) {
-        if (!isBlackKey[i % 12]) {
-          whiteKeysFromMiddleC += (midiNote > 60 ? 1 : -1);
-        }
+  } else if (semitonesFromMiddleC < 0) {
+    // Going down from middle C
+    for (int i = -1; i >= semitonesFromMiddleC; i--) {
+      int noteIndex = (60 + i + 120) % 12; // +120 to handle negative modulo
+      if (isWhiteKey[noteIndex]) {
+        whiteKeyStepsFromMiddleC--;
       }
-
-      staffPosition = bassStaffTop - STAFF_LINE_HEIGHT -
-                      whiteKeysFromMiddleC * (STAFF_LINE_HEIGHT / 2.0);
     }
-
-    return staffPosition;
   }
+  // If semitonesFromMiddleC == 0, it's middle C, so whiteKeyStepsFromMiddleC
+  // stays 0
+
+  // Calculate final position: middle C + (white key steps * half staff line
+  // height) Negative steps go up (treble), positive steps go down (bass)
+  double staffPosition =
+      middleCPosition - (whiteKeyStepsFromMiddleC * (STAFF_LINE_HEIGHT / 2.0));
+
+  return staffPosition;
 }
 
 //------------------------------------------------------------------------
 bool NotationView::needsLedgerLine(double staffPosition, bool isOnTrebleStaff) {
   VSTGUI::CRect rect = getViewSize();
   double centerY = rect.getHeight() / 2.0;
-  double trebleStaffTop = centerY - GRAND_STAFF_GAP / 2.0 - STAFF_SPACING;
-  double bassStaffTop = centerY + GRAND_STAFF_GAP / 2.0;
+  double middleCPosition = centerY;
+
+  // In unified grand staff system:
+  // Treble staff lines: E4 to F5 (positions centerY-32 to centerY-8)
+  // Bass staff lines: A3 to G2 (positions centerY+8 to centerY+40)
+  // Middle C is at centerY (between the staves)
+
+  double trebleStaffTop =
+      middleCPosition - (STAFF_SPACING + GRAND_STAFF_GAP / 2);        // F5 line
+  double trebleStaffBottom = middleCPosition - (GRAND_STAFF_GAP / 2); // E4 line
+  double bassStaffTop = middleCPosition + (GRAND_STAFF_GAP / 2);      // A3 line
+  double bassStaffBottom =
+      middleCPosition + (STAFF_SPACING + GRAND_STAFF_GAP / 2); // G2 line
 
   if (isOnTrebleStaff) {
-    double staffBottom = trebleStaffTop + 4 * STAFF_LINE_HEIGHT;
-    return (staffPosition < trebleStaffTop || staffPosition > staffBottom);
+    // Note is in treble clef area - needs ledger line if outside treble staff
+    return (staffPosition < trebleStaffTop ||
+            staffPosition > trebleStaffBottom);
   } else {
-    double staffTop = bassStaffTop;
-    double staffBottom = bassStaffTop + 4 * STAFF_LINE_HEIGHT;
-    return (staffPosition < staffTop || staffPosition > staffBottom);
+    // Note is in bass clef area - needs ledger line if outside bass staff
+    return (staffPosition < bassStaffTop || staffPosition > bassStaffBottom);
   }
 }
 

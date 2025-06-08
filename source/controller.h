@@ -10,8 +10,20 @@
 
 namespace Ursulean {
 
-// Parameter IDs for communication
-enum { kActiveNotesParam = 0, kNumParams };
+// Parameter IDs for communication (support up to 10 simultaneous notes)
+enum {
+  kNote1Param = 0,
+  kNote2Param = 1,
+  kNote3Param = 2,
+  kNote4Param = 3,
+  kNote5Param = 4,
+  kNote6Param = 5,
+  kNote7Param = 6,
+  kNote8Param = 7,
+  kNote9Param = 8,
+  kNote10Param = 9,
+  kNumNoteParams = 10
+};
 
 //------------------------------------------------------------------------
 //  NotationChordHelperController
@@ -61,6 +73,8 @@ public:
 protected:
   NotationEditor *currentEditor = nullptr;
   std::vector<int> lastActiveNotes;
+  std::vector<int>
+      currentNoteParams; // Track which MIDI note is in each parameter slot
 };
 
 //------------------------------------------------------------------------

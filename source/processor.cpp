@@ -74,19 +74,32 @@ NotationChordHelperProcessor::process(Vst::ProcessData &data) {
 
   // Send parameter updates if notes changed
   if (activeNotesChanged && data.outputParameterChanges) {
-    int32 index = 0;
-    auto *paramQueue = data.outputParameterChanges->addParameterData(
-        0, index); // Use parameter ID 0 for active notes
-    if (paramQueue) {
-      // Check active notes with proper locking
-      double paramValue = 0.0;
-      {
-        std::lock_guard<std::mutex> lock(activeNotesMutex);
-        paramValue = activeNotes.empty() ? 0.0 : 1.0;
-        activeNotesChanged = false;
-      }
-      paramQueue->addPoint(0, paramValue, index);
+    std::lock_guard<std::mutex> lock(activeNotesMutex);
+
+    // Convert active notes to vector and limit to 10 notes max
+    std::vector<int> notesList(activeNotes.begin(), activeNotes.end());
+    if (notesList.size() > 10) {
+      notesList.resize(10); // Limit to first 10 notes
     }
+
+    // Send each note to its corresponding parameter slot
+    for (int i = 0; i < 10; i++) {
+      int32 index = 0;
+      auto *paramQueue =
+          data.outputParameterChanges->addParameterData(i, index);
+      if (paramQueue) {
+        if (i < notesList.size()) {
+          // Send the note as normalized value (0-127 maps to 0.0-1.0)
+          double paramValue = static_cast<double>(notesList[i]) / 127.0;
+          paramQueue->addPoint(0, paramValue, index);
+        } else {
+          // No note for this slot, send 0.0
+          paramQueue->addPoint(0, 0.0, index);
+        }
+      }
+    }
+
+    activeNotesChanged = false;
   }
 
   //--- First : Read inputs parameter changes-----------

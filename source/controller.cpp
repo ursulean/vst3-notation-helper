@@ -26,10 +26,40 @@ NotationChordHelperController::initialize(FUnknown *context) {
     return result;
   }
 
-  // Register parameters for communication
-  parameters.addParameter(STR16("Active Notes"), nullptr, 0, 0,
+  // Initialize note parameter tracking
+  currentNoteParams.resize(kNumNoteParams, -1); // -1 means no note in this slot
+
+  // Register parameters for communication (10 note parameters)
+  parameters.addParameter(STR16("Note 1"), nullptr, 0, 0,
                           Steinberg::Vst::ParameterInfo::kIsReadOnly,
-                          kActiveNotesParam);
+                          kNote1Param);
+  parameters.addParameter(STR16("Note 2"), nullptr, 0, 0,
+                          Steinberg::Vst::ParameterInfo::kIsReadOnly,
+                          kNote2Param);
+  parameters.addParameter(STR16("Note 3"), nullptr, 0, 0,
+                          Steinberg::Vst::ParameterInfo::kIsReadOnly,
+                          kNote3Param);
+  parameters.addParameter(STR16("Note 4"), nullptr, 0, 0,
+                          Steinberg::Vst::ParameterInfo::kIsReadOnly,
+                          kNote4Param);
+  parameters.addParameter(STR16("Note 5"), nullptr, 0, 0,
+                          Steinberg::Vst::ParameterInfo::kIsReadOnly,
+                          kNote5Param);
+  parameters.addParameter(STR16("Note 6"), nullptr, 0, 0,
+                          Steinberg::Vst::ParameterInfo::kIsReadOnly,
+                          kNote6Param);
+  parameters.addParameter(STR16("Note 7"), nullptr, 0, 0,
+                          Steinberg::Vst::ParameterInfo::kIsReadOnly,
+                          kNote7Param);
+  parameters.addParameter(STR16("Note 8"), nullptr, 0, 0,
+                          Steinberg::Vst::ParameterInfo::kIsReadOnly,
+                          kNote8Param);
+  parameters.addParameter(STR16("Note 9"), nullptr, 0, 0,
+                          Steinberg::Vst::ParameterInfo::kIsReadOnly,
+                          kNote9Param);
+  parameters.addParameter(STR16("Note 10"), nullptr, 0, 0,
+                          Steinberg::Vst::ParameterInfo::kIsReadOnly,
+                          kNote10Param);
 
   return result;
 }
@@ -46,31 +76,34 @@ tresult PLUGIN_API NotationChordHelperController::terminate() {
 //------------------------------------------------------------------------
 tresult PLUGIN_API
 NotationChordHelperController::setComponentState(IBStream *state) {
-  // Here you get the state of the component (Processor part)
+  // This method is called when loading plugin state (presets, project loading)
+  // NOT for real-time communication - that's handled by setParamNormalized()
+
   if (!state)
     return kResultFalse;
 
-  // Read the active notes from the processor state
+  // Read saved processor state for preset loading
   IBStreamer streamer(state, kLittleEndian);
 
-  // Read number of active notes
+  // Read number of saved notes (for preset state)
   int32 numNotes = 0;
   if (streamer.readInt32(numNotes) == kResultFalse)
     return kResultOk;
 
-  // Read the notes
-  std::vector<int> activeNotes;
+  // Read the saved notes and restore display state
+  std::vector<int> savedNotes;
   for (int32 i = 0; i < numNotes; i++) {
     int32 note = 0;
     if (streamer.readInt32(note) == kResultOk) {
       if (note >= 0 && note <= 127) {
-        activeNotes.push_back(note);
+        savedNotes.push_back(note);
       }
     }
   }
 
-  // Update the notation display
-  setActiveNotes(activeNotes);
+  // Only update display if this is a preset load, not real-time MIDI
+  // In most cases for a notation display, we'd start with empty staff
+  // Real-time updates come through setParamNormalized()
 
   return kResultOk;
 }
@@ -119,14 +152,30 @@ tresult PLUGIN_API NotationChordHelperController::setParamNormalized(
   // Handle parameter changes from processor
   tresult result = EditControllerEx1::setParamNormalized(tag, value);
 
-  if (tag == kActiveNotesParam) {
-    // For now, just trigger a test note display when parameter changes
-    // In a full implementation, we'd decode the actual note data
-    std::vector<int> testNotes;
-    if (value > 0.5) { // Simple test: if parameter value > 0.5, show some notes
-      testNotes = {60, 64, 67}; // C Major chord
+  if (tag >= 0 && tag < kNumNoteParams) {
+    // Update the note in this parameter slot
+    if (value > 0.0) {
+      // Decode the MIDI note from the normalized value (0.0-1.0 maps to 0-127)
+      int midiNote =
+          static_cast<int>(value * 127.0 + 0.5); // Add 0.5 for rounding
+      if (midiNote >= 0 && midiNote <= 127) {
+        currentNoteParams[tag] = midiNote;
+      }
+    } else {
+      // Value is 0.0, clear this note slot
+      currentNoteParams[tag] = -1;
     }
-    setActiveNotes(testNotes);
+
+    // Collect all active notes from all parameter slots
+    std::vector<int> activeNotes;
+    for (int noteParam : currentNoteParams) {
+      if (noteParam >= 0) { // -1 means empty slot
+        activeNotes.push_back(noteParam);
+      }
+    }
+
+    // Update the notation display with all active notes
+    setActiveNotes(activeNotes);
   }
 
   return result;
