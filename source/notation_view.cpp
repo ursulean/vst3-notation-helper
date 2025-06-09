@@ -391,59 +391,53 @@ void NotationView::drawLedgerLine(VSTGUI::CDrawContext *context, double x,
 //------------------------------------------------------------------------
 void NotationView::drawKeySignature(VSTGUI::CDrawContext *context,
                                     const VSTGUI::CRect &rect) {
-  double centerY = rect.getHeight() / 2.0;
-  double middleCPosition = centerY;
-
-  // Key signature positions for treble clef (sharps)
-  // Order: F#, C#, G#, D#, A#, E#, B#
-  static const double trebleSharpPositions[7] = {
-      -40, // F# (F5 line - top line of staff)
-      -44, // C# (C6 space - above staff)
-      -16, // G# (G4 line - 2nd line from bottom)
-      -36, // D# (D5 space - between 4th and 5th lines)
-      -20, // A# (A4 space - between 2nd and 3rd lines)
-      -40, // E# (E5 line - same as F, top line)
-      -44  // B# (B5 space - same as C, above staff)
+  // MIDI notes for key signature accidentals in treble clef
+  // Sharp order: F, C, G, D, A, E, B
+  static const int trebleSharpNotes[7] = {
+      77, // F5
+      72, // C5
+      79, // G5
+      74, // D5
+      69, // A4
+      76, // E5
+      71  // B4
   };
 
-  // Key signature positions for treble clef (flats)
-  // Order: Bb, Eb, Ab, Db, Gb, Cb, Fb
-  static const double trebleFlatPositions[7] = {
-      -24, // Bb (B4 line - 3rd line)
-      -36, // Eb (E5 space - between D5 and F5)
-      -20, // Ab (A4 space - between G4 and B4)
-      -28, // Db (C5 space - between B4 and D5)
-      -16, // Gb (G4 line - 2nd line)
-      -12, // Cb (F4 space - between E4 and G4)
-      -40  // Fb (F5 line - top line)
+  // MIDI notes for key signature accidentals in treble clef
+  // Flat order: B, E, A, D, G, C, F
+  static const int trebleFlatNotes[7] = {
+      71, // B4
+      76, // E5
+      69, // A4
+      74, // D5
+      67, // G4
+      72, // C5
+      65  // F4
   };
 
-  // Key signature positions for bass clef (sharps)
-  // Order: F#, C#, G#, D#, A#, E#, B#
-  static const double bassSharpPositions[7] = {
-      +16, // F# (F3 line - 2nd line from top)
-      +4,  // C# (space above A3 line)
-      +40, // G# (G2 line - bottom line)
-      +20, // D# (E3 space - between F3 and D3)
-      +8,  // A# (A3 line - top line)
-      +16, // E# (F3 line - same as F#)
-      +4   // B# (space above staff - same as C#)
+  // MIDI notes for key signature accidentals in bass clef
+  // Sharp order: F, C, G, D, A, E, B
+  static const int bassSharpNotes[7] = {
+      53, // F3
+      48, // C3
+      55, // G3
+      50, // D3
+      45, // A2
+      52, // E3
+      47  // B2
   };
 
-  // Key signature positions for bass clef (flats)
-  // Order: Bb, Eb, Ab, Db, Gb, Cb, Fb
-  static const double bassFlatPositions[7] = {
-      +32, // Bb (B2 line - 4th line)
-      +20, // Eb (E3 space - between F3 and D3)
-      +36, // Ab (A2 space - between B2 and G2)
-      +24, // Db (D3 line - 3rd line)
-      +12, // Gb (G3 space - between A3 and F3)
-      +28, // Cb (C3 space - between D3 and B2)
-      +16  // Fb (F3 line - 2nd line)
+  // MIDI notes for key signature accidentals in bass clef
+  // Flat order: B, E, A, D, G, C, F
+  static const int bassFlatNotes[7] = {
+      47, // B2
+      52, // E3
+      45, // A2
+      50, // D3
+      43, // G2
+      48, // C3
+      41  // F2
   };
-
-  // Order of sharps: F, C, G, D, A, E, B
-  // Order of flats: B, E, A, D, G, C, F
 
   double baseX = LEFT_MARGIN + 20; // Start after clefs
 
@@ -473,11 +467,17 @@ void NotationView::drawKeySignature(VSTGUI::CDrawContext *context,
       if (keySignatureAccidentals[static_cast<int>(currentKeySignature)]
                                  [noteClass]) {
         double x = baseX + accidentalIndex * 12;
+
+        // Use getStaffPosition to get correct Y positions
+        bool trebleStaff, needsAcc, isSharp, isNatural;
+        double trebleY = getStaffPosition(trebleSharpNotes[i], trebleStaff,
+                                          needsAcc, isSharp, isNatural);
+        double bassY = getStaffPosition(bassSharpNotes[i], trebleStaff,
+                                        needsAcc, isSharp, isNatural);
+
         // Draw sharp on both staves
-        drawAccidental(context, x, middleCPosition + trebleSharpPositions[i],
-                       true);
-        drawAccidental(context, x, middleCPosition + bassSharpPositions[i],
-                       true);
+        drawAccidental(context, x, trebleY, true);
+        drawAccidental(context, x, bassY, true);
         accidentalIndex++;
       }
     }
@@ -491,11 +491,17 @@ void NotationView::drawKeySignature(VSTGUI::CDrawContext *context,
       if (keySignatureAccidentals[static_cast<int>(currentKeySignature)]
                                  [noteClass]) {
         double x = baseX + accidentalIndex * 12;
+
+        // Use getStaffPosition to get correct Y positions
+        bool trebleStaff, needsAcc, isSharp, isNatural;
+        double trebleY = getStaffPosition(trebleFlatNotes[i], trebleStaff,
+                                          needsAcc, isSharp, isNatural);
+        double bassY = getStaffPosition(bassFlatNotes[i], trebleStaff, needsAcc,
+                                        isSharp, isNatural);
+
         // Draw flat on both staves
-        drawAccidental(context, x, middleCPosition + trebleFlatPositions[i],
-                       false);
-        drawAccidental(context, x, middleCPosition + bassFlatPositions[i],
-                       false);
+        drawAccidental(context, x, trebleY, false);
+        drawAccidental(context, x, bassY, false);
         accidentalIndex++;
       }
     }
