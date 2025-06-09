@@ -558,32 +558,19 @@ double NotationView::getStaffPosition(int midiNote, bool &isOnTrebleStaff,
 
   // Calculate staff position relative to middle C
   // Each white key step = half staff line height (4 pixels)
-  int semitonesFromMiddleC = midiNote - 60; // Middle C = MIDI 60
-  int whiteKeyStepsFromMiddleC = 0;
 
-  // Count white key steps from middle C
-  static const bool isWhiteKey[12] = {true,  false, true,  false, true,  true,
-                                      false, true,  false, true,  false, true};
+  // Calculate white key steps directly from note's octave and white key class
+  // MIDI note 60 = C4 (middle C), so octave = (midiNote / 12) - 1
+  // But we need to adjust for the fact that C4 = middle C
+  int octave = (midiNote / 12) - 1; // This gives us the musical octave
+  int middleCOctave = 4;            // Middle C is in octave 4
+  int middleCWhiteKeyClass = 0;     // C is white key class 0
 
-  if (semitonesFromMiddleC > 0) {
-    // Going up from middle C
-    for (int i = 1; i <= semitonesFromMiddleC; i++) {
-      int noteIndex = (60 + i) % 12;
-      if (isWhiteKey[noteIndex]) {
-        whiteKeyStepsFromMiddleC++;
-      }
-    }
-  } else if (semitonesFromMiddleC < 0) {
-    // Going down from middle C
-    for (int i = -1; i >= semitonesFromMiddleC; i--) {
-      int noteIndex = (60 + i + 120) % 12; // +120 to handle negative modulo
-      if (isWhiteKey[noteIndex]) {
-        whiteKeyStepsFromMiddleC--;
-      }
-    }
-  }
-  // If semitonesFromMiddleC == 0, it's middle C, so whiteKeyStepsFromMiddleC
-  // stays 0
+  // Calculate white key steps from middle C
+  // Each octave has 7 white keys, so octave difference * 7 + white key class
+  // difference
+  int whiteKeyStepsFromMiddleC =
+      (octave - middleCOctave) * 7 + (whiteNote - middleCWhiteKeyClass);
 
   // Calculate final position: middle C + (white key steps * half staff line
   // height) Negative steps go up (treble), positive steps go down (bass)
