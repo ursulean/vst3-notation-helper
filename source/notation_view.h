@@ -48,6 +48,8 @@ private:
   void drawNatural(VSTGUI::CDrawContext *context, double x, double y);
   void drawLedgerLine(VSTGUI::CDrawContext *context, double x, double y,
                       double width);
+  void drawLedgerLinesForNote(VSTGUI::CDrawContext *context, double x,
+                              double noteY, int midiNote);
   void drawKeySignature(VSTGUI::CDrawContext *context,
                         const VSTGUI::CRect &rect);
 

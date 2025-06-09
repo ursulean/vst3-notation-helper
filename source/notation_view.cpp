@@ -225,7 +225,7 @@ void NotationView::drawNotes(VSTGUI::CDrawContext *context,
 
       // Draw ledger lines if needed
       if (needsLedgerLine(sortedNotes[noteIndex], isOnTrebleStaff[noteIndex])) {
-        drawLedgerLine(context, noteX, noteY, 20);
+        drawLedgerLinesForNote(context, noteX, noteY, sortedNotes[noteIndex]);
       }
 
       // Draw accidental if needed
@@ -265,7 +265,8 @@ void NotationView::drawNotes(VSTGUI::CDrawContext *context,
           // Draw ledger lines if needed
           if (needsLedgerLine(sortedNotes[noteIndex],
                               isOnTrebleStaff[noteIndex])) {
-            drawLedgerLine(context, noteX, noteY, 20);
+            drawLedgerLinesForNote(context, noteX, noteY,
+                                   sortedNotes[noteIndex]);
           }
 
           // Draw accidental if needed with better positioning to avoid
@@ -291,7 +292,8 @@ void NotationView::drawNotes(VSTGUI::CDrawContext *context,
           // Draw ledger lines if needed
           if (needsLedgerLine(sortedNotes[noteIndex],
                               isOnTrebleStaff[noteIndex])) {
-            drawLedgerLine(context, noteX, noteY, 20);
+            drawLedgerLinesForNote(context, noteX, noteY,
+                                   sortedNotes[noteIndex]);
           }
 
           // Draw accidental if needed
@@ -383,9 +385,65 @@ void NotationView::drawLedgerLine(VSTGUI::CDrawContext *context, double x,
                                   double y, double width) {
   context->setLineWidth(1.0);
   context->setFrameColor(VSTGUI::CColor(0, 0, 0, 255));
-  // Draw ledger line centered on the note position
+  // Draw ledger line centered on the specified position
   context->drawLine(VSTGUI::CPoint(x - width / 2, y),
                     VSTGUI::CPoint(x + width / 2, y));
+}
+
+//------------------------------------------------------------------------
+void NotationView::drawLedgerLinesForNote(VSTGUI::CDrawContext *context,
+                                          double x, double noteY,
+                                          int midiNote) {
+  VSTGUI::CRect rect = getViewSize();
+  double centerY = rect.getHeight() / 2.0;
+
+  // Calculate which ledger lines are needed based on note position
+  // Staff lines are at centerY ± 8, ± 16, ± 24, ± 32, ± 40
+  // Ledger lines are at centerY ± 48, ± 56, ± 64, etc. and centerY (middle C)
+
+  std::vector<double> ledgerLinePositions;
+
+  // Middle C area (between staves)
+  if (midiNote >= 59 && midiNote <= 63) {
+    ledgerLinePositions.push_back(centerY); // Middle C ledger line
+  }
+
+  // Above treble staff (notes above G5 = MIDI 79)
+  if (midiNote > 79) {
+    // Calculate how many ledger lines we need above the treble staff
+    // Treble staff top line is at centerY - 40
+    // First ledger line above is at centerY - 48
+    double staffTopLine = centerY - 40;
+    double notePosition = noteY;
+
+    // Add ledger lines from first ledger line (centerY - 48) down to just above
+    // the staff
+    for (double ledgerY = centerY - 48; ledgerY >= notePosition - 4;
+         ledgerY -= 8) {
+      ledgerLinePositions.push_back(ledgerY);
+    }
+  }
+
+  // Below bass staff (notes below F2 = MIDI 41)
+  if (midiNote < 41) {
+    // Calculate how many ledger lines we need below the bass staff
+    // Bass staff bottom line is at centerY + 40
+    // First ledger line below is at centerY + 48
+    double staffBottomLine = centerY + 40;
+    double notePosition = noteY;
+
+    // Add ledger lines from first ledger line (centerY + 48) up to just below
+    // the staff
+    for (double ledgerY = centerY + 48; ledgerY <= notePosition + 4;
+         ledgerY += 8) {
+      ledgerLinePositions.push_back(ledgerY);
+    }
+  }
+
+  // Draw all calculated ledger lines
+  for (double ledgerY : ledgerLinePositions) {
+    drawLedgerLine(context, x, ledgerY, 20);
+  }
 }
 
 //------------------------------------------------------------------------
@@ -599,7 +657,7 @@ bool NotationView::needsLedgerLine(int midiNote, bool isOnTrebleStaff) {
   if (midiNote < 41) {
     return true; // Below F2
   }
-  if (midiNote == 60 || midiNote == 61) {
+  if (midiNote >= 59 && midiNote <= 63) {
     return true; // Middle C4
   }
 
