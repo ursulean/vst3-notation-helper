@@ -5,9 +5,13 @@
 #pragma once
 
 #include "notation_view.h"
+#include "vstgui/lib/controls/coptionmenu.h"
 #include "vstgui/plugin-bindings/vst3editor.h"
 
 namespace Ursulean {
+
+// Forward declaration to avoid circular include
+enum KeySignature;
 
 //------------------------------------------------------------------------
 // NotationEditor - Custom VST3 Editor with notation display
@@ -25,9 +29,14 @@ public:
 
   // Update the notation display
   void setActiveNotes(const std::vector<int> &notes);
+  void setKeySignature(KeySignature keySignature);
+
+  // VST3Editor overrides for parameter updates
+  void valueChanged(VSTGUI::CControl *pControl) override;
 
 protected:
   NotationView *notationView = nullptr;
+  VSTGUI::COptionMenu *keySignatureMenu = nullptr;
 };
 
 //------------------------------------------------------------------------

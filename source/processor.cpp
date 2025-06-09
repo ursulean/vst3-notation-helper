@@ -4,6 +4,7 @@
 
 #include "processor.h"
 #include "cids.h"
+#include "controller.h"
 
 #include "base/source/fstreamer.h"
 #include "pluginterfaces/vst/ivstevents.h"
@@ -15,7 +16,8 @@ namespace Ursulean {
 //------------------------------------------------------------------------
 // NotationChordHelperProcessor
 //------------------------------------------------------------------------
-NotationChordHelperProcessor::NotationChordHelperProcessor() {
+NotationChordHelperProcessor::NotationChordHelperProcessor()
+    : currentKeySignature(kCMajor) {
   //--- set the wanted controller for our processor
   setControllerClass(kNotationChordHelperControllerUID);
 }
@@ -103,17 +105,32 @@ NotationChordHelperProcessor::process(Vst::ProcessData &data) {
   }
 
   //--- First : Read inputs parameter changes-----------
-  // if (data.inputParameterChanges) {
-  //   int32 numParamsChanged = data.inputParameterChanges->getParameterCount();
-  //   for (int32 index = 0; index < numParamsChanged; index++) {
-  //     if (auto *paramQueue =
-  //             data.inputParameterChanges->getParameterData(index)) {
-  //       Vst::ParamValue value;
-  //       int32 sampleOffset;
-  //       int32 numPoints = paramQueue->getPointCount();
-  //       switch (paramQueue->getParameterId()) {}
-  //     }
-  //   }
+  if (data.inputParameterChanges) {
+    int32 numParamsChanged = data.inputParameterChanges->getParameterCount();
+    for (int32 index = 0; index < numParamsChanged; index++) {
+      if (auto *paramQueue =
+              data.inputParameterChanges->getParameterData(index)) {
+        Vst::ParamValue value;
+        int32 sampleOffset;
+        int32 numPoints = paramQueue->getPointCount();
+        if (numPoints > 0) {
+          // Get the last value in the queue
+          paramQueue->getPoint(numPoints - 1, sampleOffset, value);
+
+          switch (paramQueue->getParameterId()) {
+          case kKeySignatureParam: {
+            int keyIndex = static_cast<int>(value * (kNumKeySigs - 1) + 0.5);
+            if (keyIndex >= 0 && keyIndex < kNumKeySigs) {
+              currentKeySignature = static_cast<KeySignature>(keyIndex);
+            }
+          } break;
+          default:
+            break;
+          }
+        }
+      }
+    }
+  }
 
   //--- Here you have to implement your processing
 
@@ -235,6 +252,14 @@ tresult PLUGIN_API NotationChordHelperProcessor::setState(IBStream *state) {
 
   IBStreamer streamer(state, kLittleEndian);
 
+  // Read key signature
+  int32 keySig = 0;
+  if (streamer.readInt32(keySig) == kResultFalse)
+    return kResultFalse;
+  if (keySig >= 0 && keySig < kNumKeySigs) {
+    currentKeySignature = static_cast<KeySignature>(keySig);
+  }
+
   // Read active notes from state
   int32 numNotes = 0;
   if (streamer.readInt32(numNotes) == kResultFalse)
@@ -262,6 +287,11 @@ tresult PLUGIN_API NotationChordHelperProcessor::getState(IBStream *state) {
     return kResultFalse;
 
   IBStreamer streamer(state, kLittleEndian);
+
+  // Write key signature to state
+  if (streamer.writeInt32(static_cast<int32>(currentKeySignature)) ==
+      kResultFalse)
+    return kResultFalse;
 
   // Write active notes to state
   std::lock_guard<std::mutex> lock(activeNotesMutex);

@@ -13,6 +13,9 @@
 
 namespace Ursulean {
 
+// Forward declaration
+enum KeySignature;
+
 //------------------------------------------------------------------------
 //  NotationChordHelperProcessor
 //------------------------------------------------------------------------
@@ -73,6 +76,7 @@ private:
   std::set<int> activeNotes;           // Currently pressed MIDI notes (0-127)
   mutable std::mutex activeNotesMutex; // Protect access to activeNotes
   bool activeNotesChanged = false;     // Flag to indicate notes have changed
+  KeySignature currentKeySignature;    // Current key signature setting
 };
 
 //------------------------------------------------------------------------

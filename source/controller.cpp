@@ -27,7 +27,7 @@ NotationChordHelperController::initialize(FUnknown *context) {
   }
 
   // Initialize note parameter tracking
-  currentNoteParams.resize(kNumNoteParams, -1); // -1 means no note in this slot
+  currentNoteParams.resize(10, -1); // -1 means no note in this slot
 
   // Register parameters for communication (10 note parameters)
   parameters.addParameter(STR16("Note 1"), nullptr, 0, 0,
@@ -60,6 +60,12 @@ NotationChordHelperController::initialize(FUnknown *context) {
   parameters.addParameter(STR16("Note 10"), nullptr, 0, 0,
                           Steinberg::Vst::ParameterInfo::kIsReadOnly,
                           kNote10Param);
+
+  // Add key signature parameter
+  parameters.addParameter(STR16("Key Signature"), STR16("Key"), 0, 0,
+                          Steinberg::Vst::ParameterInfo::kCanAutomate |
+                              Steinberg::Vst::ParameterInfo::kIsList,
+                          kKeySignatureParam);
 
   return result;
 }
@@ -152,7 +158,7 @@ tresult PLUGIN_API NotationChordHelperController::setParamNormalized(
   // Handle parameter changes from processor
   tresult result = EditControllerEx1::setParamNormalized(tag, value);
 
-  if (tag >= 0 && tag < kNumNoteParams) {
+  if (tag >= 0 && tag < 10) {
     // Update the note in this parameter slot
     if (value > 0.0) {
       // Decode the MIDI note from the normalized value (0.0-1.0 maps to 0-127)
@@ -176,6 +182,16 @@ tresult PLUGIN_API NotationChordHelperController::setParamNormalized(
 
     // Update the notation display with all active notes
     setActiveNotes(activeNotes);
+  } else if (tag == kKeySignatureParam) {
+    // Handle key signature parameter change
+    int keyIndex = static_cast<int>(value * (kNumKeySigs - 1) + 0.5);
+    if (keyIndex >= 0 && keyIndex < kNumKeySigs) {
+      currentKeySignature = static_cast<KeySignature>(keyIndex);
+      // Update the notation view with the new key signature
+      if (currentEditor) {
+        currentEditor->setKeySignature(currentKeySignature);
+      }
+    }
   }
 
   return result;

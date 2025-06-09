@@ -13,6 +13,9 @@
 
 namespace Ursulean {
 
+// Forward declaration to avoid circular include
+enum KeySignature;
+
 //------------------------------------------------------------------------
 // NotationView - Custom view for displaying musical notation
 //------------------------------------------------------------------------
@@ -27,6 +30,9 @@ public:
   // Update the currently active notes
   void setActiveNotes(const std::vector<int> &notes);
 
+  // Set the key signature
+  void setKeySignature(KeySignature keySignature);
+
 private:
   // Drawing methods
   void drawStaff(VSTGUI::CDrawContext *context, const VSTGUI::CRect &rect);
@@ -39,15 +45,23 @@ private:
                 bool filled = true);
   void drawAccidental(VSTGUI::CDrawContext *context, double x, double y,
                       bool isSharp);
+  void drawNatural(VSTGUI::CDrawContext *context, double x, double y);
   void drawLedgerLine(VSTGUI::CDrawContext *context, double x, double y,
                       double width);
+  void drawKeySignature(VSTGUI::CDrawContext *context,
+                        const VSTGUI::CRect &rect);
 
   // Helper methods
   double getStaffPosition(int midiNote, bool &isOnTrebleStaff,
-                          bool &needsAccidental, bool &isSharp);
-  bool needsLedgerLine(double staffPosition, bool isOnTrebleStaff);
+                          bool &needsAccidental, bool &isSharp,
+                          bool &isNatural);
+  bool needsLedgerLine(int midiNote, bool isOnTrebleStaff);
   double getHorizontalOffset(int noteIndex,
                              const std::vector<double> &staffPositions);
+
+  // Key signature helper methods
+  bool isNoteInKeySignature(int noteClass) const;
+  bool keySignatureUsesSharp(int noteClass) const;
 
   // Smart note positioning helpers
   std::vector<std::vector<int>>
@@ -65,6 +79,13 @@ private:
   std::map<int, double> noteToStaffPosition; // MIDI note to staff line position
   std::map<int, bool> noteNeedsAccidental;   // Which notes need sharps/flats
   std::map<int, bool> noteIsSharp;           // True for sharp, false for flat
+
+  // Key signature data
+  KeySignature currentKeySignature = static_cast<KeySignature>(0); // C Major
+  static const bool keySignatureAccidentals[15][7]; // Which note classes have
+                                                    // accidentals in each key
+  static const bool
+      keySignatureIsSharp[15][7]; // Whether each accidental is sharp or flat
 
   // Drawing constants
   static constexpr double STAFF_LINE_HEIGHT = 8.0;
