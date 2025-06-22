@@ -36,10 +36,8 @@ public:
 private:
   // Drawing methods
   void drawStaff(VSTGUI::CDrawContext *context, const VSTGUI::CRect &rect);
-  void drawTrebleClef(VSTGUI::CDrawContext *context, double x, double y,
-                      double scale);
-  void drawBassClef(VSTGUI::CDrawContext *context, double x, double y,
-                    double scale);
+  void drawTrebleClef(VSTGUI::CDrawContext *context, double x, double y);
+  void drawBassClef(VSTGUI::CDrawContext *context, double x, double y);
   void drawNotes(VSTGUI::CDrawContext *context, const VSTGUI::CRect &rect);
   void drawNote(VSTGUI::CDrawContext *context, double x, double y,
                 bool filled = true);
@@ -58,8 +56,6 @@ private:
                           bool &needsAccidental, bool &isSharp,
                           bool &isNatural);
   bool needsLedgerLine(int midiNote, bool isOnTrebleStaff);
-  double getHorizontalOffset(int noteIndex,
-                             const std::vector<double> &staffPositions);
 
   // Key signature helper methods
   bool isNoteInKeySignature(int noteClass) const;
@@ -89,17 +85,71 @@ private:
   static const bool
       keySignatureIsSharp[15][7]; // Whether each accidental is sharp or flat
 
-  // Drawing constants
-  static constexpr double STAFF_LINE_HEIGHT = 8.0;
-  static constexpr double STAFF_SPACING =
-      STAFF_LINE_HEIGHT * 4.0; // 4 spaces between 5 lines
-  static constexpr double GRAND_STAFF_GAP =
-      STAFF_LINE_HEIGHT; // Just one staff line height between staves
-  static constexpr double NOTE_WIDTH = 10.0; // Slightly bigger noteheads
-  static constexpr double NOTE_HEIGHT = 6.5; // Proportional increase
-  static constexpr double CLEF_WIDTH = 40.0;
-  static constexpr double LEFT_MARGIN = 50.0;
-  static constexpr double RIGHT_MARGIN = 20.0;
+private:
+  // Proportional sizing helper - all dimensions based on view size
+  struct Dimensions {
+    double width;
+    double height;
+
+    // Intuitive proportional constants based on semantic layout
+    static constexpr double STAFF_LINE_HEIGHT_RATIO =
+        0.05; // 5% of window height per staff line space
+    static constexpr double GRAND_STAFF_GAP_RATIO =
+        0.1; // 15% gap between staves
+
+    // Layout margins and spacing
+    static constexpr double LEFT_MARGIN_RATIO =
+        0.15; // 15% for clefs and key signature
+    static constexpr double RIGHT_MARGIN_RATIO = 0.05; // 5% right margin
+    static constexpr double CLEF_WIDTH_RATIO =
+        0.1; // 10% of width for the clef symbol area
+
+    // Spacing and positioning
+    static constexpr double ACCIDENTAL_SPACING_RATIO =
+        0.025; // 2.5% between key sig accidentals
+    static constexpr double NOTE_GROUP_SPACING_RATIO =
+        0.05; // 5% between chord groups
+    static constexpr double LEDGER_LINE_WIDTH_RATIO =
+        0.04; // 4% ledger line width
+    static constexpr double ACCIDENTAL_OFFSET_RATIO =
+        0.04; // 4% offset for accidentals from notes
+    static constexpr double KEY_SIGNATURE_PADDING_RATIO =
+        0.03; // 3% padding around key signature
+
+    // Symbol drawing proportions (relative to smaller dimension for
+    // consistency)
+    static constexpr double SYMBOL_BASE_SIZE_RATIO =
+        0.03; // 3% of smaller dimension
+
+    // Calculate actual dimensions
+    double staffLineHeight() const { return height * STAFF_LINE_HEIGHT_RATIO; }
+    double grandStaffGap() const { return staffLineHeight() * 2.0; }
+    double noteWidth() const { return staffLineHeight() * 1.3; }
+    double noteHeight() const { return staffLineHeight() * 0.94; }
+    double clefWidth() const { return width * CLEF_WIDTH_RATIO; }
+    double leftMargin() const { return width * LEFT_MARGIN_RATIO; }
+    double rightMargin() const { return width * RIGHT_MARGIN_RATIO; }
+    double clefFontSize() const { return staffLineHeight() * 6.0; }
+    double accidentalSpacing() const {
+      return width * ACCIDENTAL_SPACING_RATIO;
+    }
+    double noteGroupSpacing() const { return width * NOTE_GROUP_SPACING_RATIO; }
+    double ledgerLineWidth() const { return noteWidth() * 1.5; }
+    double accidentalOffset() const { return noteWidth() * 2.0; }
+    double keySignaturePadding() const {
+      return width * KEY_SIGNATURE_PADDING_RATIO;
+    }
+
+    // Symbol drawing proportions
+    double symbolBaseSize() const {
+      return std::min(width, height) * SYMBOL_BASE_SIZE_RATIO;
+    }
+  };
+
+  Dimensions getDimensions() const {
+    VSTGUI::CRect rect = getViewSize();
+    return {rect.getWidth(), rect.getHeight()};
+  }
 };
 
 //------------------------------------------------------------------------

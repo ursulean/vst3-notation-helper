@@ -109,67 +109,80 @@ void NotationView::draw(VSTGUI::CDrawContext *context) {
 //------------------------------------------------------------------------
 void NotationView::drawStaff(VSTGUI::CDrawContext *context,
                              const VSTGUI::CRect &rect) {
-  context->setLineWidth(1.0);
+  context->setLineWidth(2.0);
   context->setDrawMode(VSTGUI::kAntiAliasing);
   context->setLineStyle(VSTGUI::kLineSolid);
   context->setFrameColor(VSTGUI::CColor(0, 0, 0, 255)); // Black lines
 
+  auto dim = getDimensions();
   double centerY = rect.getHeight() / 2.0;
-  double middleCPosition = centerY;
+  double staffLineHeight = dim.staffLineHeight();
+  double grandStaffGap = dim.grandStaffGap();
 
-  // Treble staff lines (bottom to top): E4, G4, B4, D5, F5
-  // Positioned at: -8, -16, -24, -32, -40 pixels from middle C
+  // Calculate staff centers - position the grand staff around the window center
+  double trebleStaffCenter =
+      centerY - (grandStaffGap / 2.0) - (staffLineHeight * 2.0);
+  double bassStaffCenter =
+      centerY + (grandStaffGap / 2.0) + (staffLineHeight * 2.0);
+
+  // Position clefs and start of staff lines
+  double staffStartX = dim.width * 0.025; // Start staff 2.5% from edge
+
+  // Draw treble staff lines
   for (int i = 0; i < 5; i++) {
-    double y =
-        middleCPosition - (8 + i * 8); // E4 line, then up by 8 pixels each
-    context->drawLine(VSTGUI::CPoint(LEFT_MARGIN, y),
-                      VSTGUI::CPoint(rect.getWidth() - RIGHT_MARGIN, y));
+    double y = trebleStaffCenter + (staffLineHeight * (2 - i));
+    context->drawLine(VSTGUI::CPoint(staffStartX, y),
+                      VSTGUI::CPoint(rect.getWidth() - dim.rightMargin(), y));
   }
 
-  // Bass staff lines (top to bottom): A3, F3, D3, B2, G2
-  // Positioned at: +8, +16, +24, +32, +40 pixels from middle C
+  // Draw bass staff lines
   for (int i = 0; i < 5; i++) {
-    double y =
-        middleCPosition + (8 + i * 8); // A3 line, then down by 8 pixels each
-    context->drawLine(VSTGUI::CPoint(LEFT_MARGIN, y),
-                      VSTGUI::CPoint(rect.getWidth() - RIGHT_MARGIN, y));
+    double y = bassStaffCenter + (staffLineHeight * (2 - i));
+    context->drawLine(VSTGUI::CPoint(staffStartX, y),
+                      VSTGUI::CPoint(rect.getWidth() - dim.rightMargin(), y));
   }
 
-  // Draw clefs - position them properly centered on their respective staves
-  // Treble clef should be centered on G4 line (2nd line from bottom) = -16 from
-  // middle C
-  double trebleClefY = middleCPosition - 16; // G4 line center
-  // Bass clef should be centered on F3 line (4th line from top) = +24 from
-  // middle C
-  double bassClefY = middleCPosition + 24; // F3 line center
-  drawTrebleClef(context, LEFT_MARGIN - 30, trebleClefY - 20, 1.0);
-  drawBassClef(context, LEFT_MARGIN - 30, bassClefY - 12, 1.0);
+  drawTrebleClef(context, staffStartX, trebleStaffCenter - staffLineHeight / 2);
+  drawBassClef(context, staffStartX, bassStaffCenter - staffLineHeight / 2);
 }
 
 //------------------------------------------------------------------------
 void NotationView::drawTrebleClef(VSTGUI::CDrawContext *context, double x,
-                                  double y, double scale) {
+                                  double y) {
   // Draw treble clef using Unicode musical symbol with larger font
-  auto font = VSTGUI::makeOwned<VSTGUI::CFontDesc>("Arial", 24);
+  auto dim = getDimensions();
+  auto fontSize = dim.clefFontSize();
+  auto font =
+      VSTGUI::makeOwned<VSTGUI::CFontDesc>("Arial", static_cast<int>(fontSize));
   context->setFont(font);
   context->setFontColor(VSTGUI::CColor(0, 0, 0, 255));
 
-  // Draw Unicode treble clef symbol
-  VSTGUI::CRect textRect(x, y, x + 30, y + 40);
-  context->drawString("𝄞", textRect); // Unicode treble clef
+  // Draw Unicode treble clef symbol, centering it on the provided y-coordinate
+  // (G4 line)
+  double clefWidth = dim.clefWidth();
+  // Adjust the rect's vertical position to align the glyph's "curl" with the G4
+  // line
+  VSTGUI::CRect textRect(x, y - fontSize / 2, x + clefWidth, y + fontSize / 2);
+  context->drawString("𝄞", textRect,
+                      VSTGUI::kCenterText); // Unicode treble clef
 }
 
 //------------------------------------------------------------------------
 void NotationView::drawBassClef(VSTGUI::CDrawContext *context, double x,
-                                double y, double scale) {
+                                double y) {
   // Draw bass clef using Unicode musical symbol with larger font
-  auto font = VSTGUI::makeOwned<VSTGUI::CFontDesc>("Arial", 24);
+  auto dim = getDimensions();
+  auto fontSize = dim.clefFontSize();
+  auto font = VSTGUI::makeOwned<VSTGUI::CFontDesc>(
+      "Arial", static_cast<int>(fontSize * 0.8));
   context->setFont(font);
   context->setFontColor(VSTGUI::CColor(0, 0, 0, 255));
 
-  // Draw Unicode bass clef symbol
-  VSTGUI::CRect textRect(x, y, x + 30, y + 40);
-  context->drawString("𝄢", textRect); // Unicode bass clef
+  // Draw Unicode bass clef symbol, centering it on the provided y-coordinate
+  // (F3 line)
+  double clefWidth = dim.clefWidth();
+  VSTGUI::CRect textRect(x, y - fontSize / 2, x + clefWidth, y + fontSize / 2);
+  context->drawString("𝄢", textRect, VSTGUI::kCenterText); // Unicode bass clef
 }
 
 //------------------------------------------------------------------------
@@ -205,6 +218,7 @@ void NotationView::drawNotes(VSTGUI::CDrawContext *context,
       groupNotesByPosition(sortedNotes, staffPositions, needsAccidental);
 
   // Draw each group of notes - position after key signature
+  auto dim = getDimensions();
   int numAccidentalsInKey = 0;
   for (int i = 0; i < 7; i++) {
     if (keySignatureAccidentals[static_cast<int>(currentKeySignature)][i]) {
@@ -212,8 +226,9 @@ void NotationView::drawNotes(VSTGUI::CDrawContext *context,
     }
   }
   double keySigWidth =
-      numAccidentalsInKey * 12 + (numAccidentalsInKey > 0 ? 20 : 0);
-  double baseX = LEFT_MARGIN + CLEF_WIDTH + keySigWidth + 20;
+      numAccidentalsInKey * dim.accidentalSpacing() +
+      (numAccidentalsInKey > 0 ? dim.keySignaturePadding() : 0);
+  double baseX = dim.leftMargin() + dim.clefWidth() + keySigWidth;
   double groupOffsetX = 0;
 
   for (const auto &group : noteGroups) {
@@ -231,9 +246,10 @@ void NotationView::drawNotes(VSTGUI::CDrawContext *context,
       // Draw accidental if needed
       if (needsAccidental[noteIndex]) {
         if (isNatural[noteIndex]) {
-          drawNatural(context, noteX - 25, noteY);
+          drawNatural(context, noteX - dim.accidentalOffset(), noteY);
         } else {
-          drawAccidental(context, noteX - 25, noteY, isSharp[noteIndex]);
+          drawAccidental(context, noteX - dim.accidentalOffset(), noteY,
+                         isSharp[noteIndex]);
         }
       }
 
@@ -254,12 +270,12 @@ void NotationView::drawNotes(VSTGUI::CDrawContext *context,
           double noteY = staffPositions[noteIndex];
 
           // Determine which column: alternate between left and right
-          // Left column = -NOTE_WIDTH*0.4, Right column = +NOTE_WIDTH*0.4
+          // Left column = -noteWidth*0.4, Right column = +noteWidth*0.4
           double noteX;
           if (i % 2 == 0) {
-            noteX = groupCenterX - NOTE_WIDTH * 0.4; // Left column
+            noteX = groupCenterX - dim.noteWidth() * 0.4; // Left column
           } else {
-            noteX = groupCenterX + NOTE_WIDTH * 0.4; // Right column
+            noteX = groupCenterX + dim.noteWidth() * 0.4; // Right column
           }
 
           // Draw ledger lines if needed
@@ -273,9 +289,10 @@ void NotationView::drawNotes(VSTGUI::CDrawContext *context,
           // collisions
           if (needsAccidental[noteIndex]) {
             if (isNatural[noteIndex]) {
-              drawNatural(context, noteX - 25, noteY);
+              drawNatural(context, noteX - dim.accidentalOffset(), noteY);
             } else {
-              drawAccidental(context, noteX - 25, noteY, isSharp[noteIndex]);
+              drawAccidental(context, noteX - dim.accidentalOffset(), noteY,
+                             isSharp[noteIndex]);
             }
           }
 
@@ -299,9 +316,10 @@ void NotationView::drawNotes(VSTGUI::CDrawContext *context,
           // Draw accidental if needed
           if (needsAccidental[noteIndex]) {
             if (isNatural[noteIndex]) {
-              drawNatural(context, noteX - 25, noteY);
+              drawNatural(context, noteX - dim.accidentalOffset(), noteY);
             } else {
-              drawAccidental(context, noteX - 25, noteY, isSharp[noteIndex]);
+              drawAccidental(context, noteX - dim.accidentalOffset(), noteY,
+                             isSharp[noteIndex]);
             }
           }
 
@@ -312,21 +330,22 @@ void NotationView::drawNotes(VSTGUI::CDrawContext *context,
     }
 
     // Move to next group position
-    groupOffsetX += 40; // Space between chord groups
+    groupOffsetX += dim.noteGroupSpacing(); // Space between chord groups
   }
 }
 
 //------------------------------------------------------------------------
 void NotationView::drawNote(VSTGUI::CDrawContext *context, double x, double y,
                             bool filled) {
-  context->setLineWidth(1.5);
+  context->setLineWidth(1.2);
   context->setFrameColor(VSTGUI::CColor(0, 0, 0, 255));
 
+  auto dim = getDimensions();
   // Draw note head as an ellipse - CRect takes (left, top, right, bottom)
-  double left = x - NOTE_WIDTH / 2;
-  double top = y - NOTE_HEIGHT / 2;
-  double right = x + NOTE_WIDTH / 2;
-  double bottom = y + NOTE_HEIGHT / 2;
+  double left = x - dim.noteWidth() / 2;
+  double top = y - dim.noteHeight() / 2;
+  double right = x + dim.noteWidth() / 2;
+  double bottom = y + dim.noteHeight() / 2;
 
   VSTGUI::CRect noteRect(left, top, right, bottom);
 
@@ -341,25 +360,31 @@ void NotationView::drawNote(VSTGUI::CDrawContext *context, double x, double y,
 //------------------------------------------------------------------------
 void NotationView::drawAccidental(VSTGUI::CDrawContext *context, double x,
                                   double y, bool isSharp) {
-  context->setLineWidth(1.5);
+  context->setLineWidth(2.0);
   context->setFrameColor(VSTGUI::CColor(0, 0, 0, 255));
+
+  auto dim = getDimensions();
+  double baseSize = dim.symbolBaseSize();
 
   if (isSharp) {
     // Draw sharp symbol (#)
     // Vertical lines
-    context->drawLine(VSTGUI::CPoint(x + 2, y - 6),
-                      VSTGUI::CPoint(x + 2, y + 6));
-    context->drawLine(VSTGUI::CPoint(x + 6, y - 6),
-                      VSTGUI::CPoint(x + 6, y + 6));
+    context->drawLine(VSTGUI::CPoint(x + baseSize * 0.25, y - baseSize * 0.75),
+                      VSTGUI::CPoint(x + baseSize * 0.25, y + baseSize * 0.75));
+    context->drawLine(VSTGUI::CPoint(x + baseSize * 0.75, y - baseSize * 0.75),
+                      VSTGUI::CPoint(x + baseSize * 0.75, y + baseSize * 0.75));
     // Horizontal lines
-    context->drawLine(VSTGUI::CPoint(x, y - 2), VSTGUI::CPoint(x + 8, y - 4));
-    context->drawLine(VSTGUI::CPoint(x, y + 2), VSTGUI::CPoint(x + 8, y));
+    context->drawLine(VSTGUI::CPoint(x, y - baseSize * 0.25),
+                      VSTGUI::CPoint(x + baseSize, y - baseSize * 0.5));
+    context->drawLine(VSTGUI::CPoint(x, y + baseSize * 0.25),
+                      VSTGUI::CPoint(x + baseSize, y));
   } else {
     // Draw flat symbol (b)
-    context->drawLine(VSTGUI::CPoint(x + 2, y - 8),
-                      VSTGUI::CPoint(x + 2, y + 4));
+    context->drawLine(VSTGUI::CPoint(x + baseSize * 0.25, y - baseSize),
+                      VSTGUI::CPoint(x + baseSize * 0.25, y + baseSize * 0.5));
     // CRect takes (left, top, right, bottom)
-    VSTGUI::CRect flatCurve(x + 2, y - 2, x + 8, y + 4);
+    VSTGUI::CRect flatCurve(x + baseSize * 0.25, y - baseSize * 0.25,
+                            x + baseSize, y + baseSize * 0.5);
     context->drawEllipse(flatCurve, VSTGUI::kDrawStroked);
   }
 }
@@ -367,23 +392,30 @@ void NotationView::drawAccidental(VSTGUI::CDrawContext *context, double x,
 //------------------------------------------------------------------------
 void NotationView::drawNatural(VSTGUI::CDrawContext *context, double x,
                                double y) {
-  context->setLineWidth(1.5);
+  context->setLineWidth(2.0);
   context->setFrameColor(VSTGUI::CColor(0, 0, 0, 255));
+
+  auto dim = getDimensions();
+  double baseSize = dim.symbolBaseSize();
 
   // Draw natural symbol (♮)
   // Two vertical lines
-  context->drawLine(VSTGUI::CPoint(x + 1, y - 8), VSTGUI::CPoint(x + 1, y + 4));
-  context->drawLine(VSTGUI::CPoint(x + 5, y - 4), VSTGUI::CPoint(x + 5, y + 8));
+  context->drawLine(VSTGUI::CPoint(x + baseSize * 0.125, y - baseSize),
+                    VSTGUI::CPoint(x + baseSize * 0.125, y + baseSize * 0.5));
+  context->drawLine(VSTGUI::CPoint(x + baseSize * 0.625, y - baseSize * 0.5),
+                    VSTGUI::CPoint(x + baseSize * 0.625, y + baseSize));
 
   // Two horizontal connecting lines (slightly slanted)
-  context->drawLine(VSTGUI::CPoint(x + 1, y - 2), VSTGUI::CPoint(x + 5, y - 4));
-  context->drawLine(VSTGUI::CPoint(x + 1, y + 2), VSTGUI::CPoint(x + 5, y));
+  context->drawLine(VSTGUI::CPoint(x + baseSize * 0.125, y - baseSize * 0.25),
+                    VSTGUI::CPoint(x + baseSize * 0.625, y - baseSize * 0.5));
+  context->drawLine(VSTGUI::CPoint(x + baseSize * 0.125, y + baseSize * 0.25),
+                    VSTGUI::CPoint(x + baseSize * 0.625, y));
 }
 
 //------------------------------------------------------------------------
 void NotationView::drawLedgerLine(VSTGUI::CDrawContext *context, double x,
                                   double y, double width) {
-  context->setLineWidth(1.0);
+  context->setLineWidth(2.0);
   context->setFrameColor(VSTGUI::CColor(0, 0, 0, 255));
   // Draw ledger line centered on the specified position
   context->drawLine(VSTGUI::CPoint(x - width / 2, y),
@@ -396,53 +428,48 @@ void NotationView::drawLedgerLinesForNote(VSTGUI::CDrawContext *context,
                                           int midiNote) {
   VSTGUI::CRect rect = getViewSize();
   double centerY = rect.getHeight() / 2.0;
+  auto dim = getDimensions();
+  double staffLineHeight = dim.staffLineHeight();
+  double grandStaffGap = dim.grandStaffGap();
 
-  // Calculate which ledger lines are needed based on note position
-  // Staff lines are at centerY ± 8, ± 16, ± 24, ± 32, ± 40
-  // Ledger lines are at centerY ± 48, ± 56, ± 64, etc. and centerY (middle C)
+  // Calculate staff boundaries using the same positioning as drawStaff
+  double trebleStaffCenter =
+      centerY - (grandStaffGap / 2.0) - (staffLineHeight * 2.0);
+  double bassStaffCenter =
+      centerY + (grandStaffGap / 2.0) + (staffLineHeight * 2.0);
+
+  // Staff boundaries: top and bottom lines of each staff
+  double trebleStaffTop = trebleStaffCenter - (staffLineHeight * 2.0);
+  double bassStaffBottom = bassStaffCenter + (staffLineHeight * 2.0);
 
   std::vector<double> ledgerLinePositions;
 
-  // Middle C area (between staves)
+  // Middle C area (between staves) - around MIDI notes 59-63
   if (midiNote >= 59 && midiNote <= 63) {
     ledgerLinePositions.push_back(centerY); // Middle C ledger line
   }
 
   // Above treble staff (notes above G5 = MIDI 79)
   if (midiNote > 79) {
-    // Calculate how many ledger lines we need above the treble staff
-    // Treble staff top line is at centerY - 40
-    // First ledger line above is at centerY - 48
-    double staffTopLine = centerY - 40;
-    double notePosition = noteY;
-
-    // Add ledger lines from first ledger line (centerY - 48) down to just above
-    // the staff
-    for (double ledgerY = centerY - 48; ledgerY >= notePosition - 4;
-         ledgerY -= 8) {
+    // Add ledger lines above the treble staff
+    for (double ledgerY = trebleStaffTop - staffLineHeight;
+         ledgerY >= noteY - staffLineHeight * 0.5; ledgerY -= staffLineHeight) {
       ledgerLinePositions.push_back(ledgerY);
     }
   }
 
   // Below bass staff (notes below F2 = MIDI 41)
   if (midiNote < 41) {
-    // Calculate how many ledger lines we need below the bass staff
-    // Bass staff bottom line is at centerY + 40
-    // First ledger line below is at centerY + 48
-    double staffBottomLine = centerY + 40;
-    double notePosition = noteY;
-
-    // Add ledger lines from first ledger line (centerY + 48) up to just below
-    // the staff
-    for (double ledgerY = centerY + 48; ledgerY <= notePosition + 4;
-         ledgerY += 8) {
+    // Add ledger lines below the bass staff
+    for (double ledgerY = bassStaffBottom + staffLineHeight;
+         ledgerY <= noteY + staffLineHeight * 0.5; ledgerY += staffLineHeight) {
       ledgerLinePositions.push_back(ledgerY);
     }
   }
 
   // Draw all calculated ledger lines
   for (double ledgerY : ledgerLinePositions) {
-    drawLedgerLine(context, x, ledgerY, 20);
+    drawLedgerLine(context, x, ledgerY, dim.ledgerLineWidth());
   }
 }
 
@@ -497,7 +524,8 @@ void NotationView::drawKeySignature(VSTGUI::CDrawContext *context,
       41  // F2
   };
 
-  double baseX = LEFT_MARGIN + 20; // Start after clefs
+  auto dim = getDimensions();
+  double baseX = dim.leftMargin() + dim.clefWidth(); // Start after clefs
 
   // Count accidentals to draw
   int numAccidentals = 0;
@@ -524,7 +552,7 @@ void NotationView::drawKeySignature(VSTGUI::CDrawContext *context,
       int noteClass = sharpOrder[i];
       if (keySignatureAccidentals[static_cast<int>(currentKeySignature)]
                                  [noteClass]) {
-        double x = baseX + accidentalIndex * 12;
+        double x = baseX + accidentalIndex * dim.accidentalSpacing();
 
         // Use getStaffPosition to get correct Y positions
         bool trebleStaff, needsAcc, isSharp, isNatural;
@@ -548,7 +576,7 @@ void NotationView::drawKeySignature(VSTGUI::CDrawContext *context,
       int noteClass = flatOrder[i];
       if (keySignatureAccidentals[static_cast<int>(currentKeySignature)]
                                  [noteClass]) {
-        double x = baseX + accidentalIndex * 12;
+        double x = baseX + accidentalIndex * dim.accidentalSpacing();
 
         // Use getStaffPosition to get correct Y positions
         bool trebleStaff, needsAcc, isSharp, isNatural;
@@ -573,8 +601,17 @@ double NotationView::getStaffPosition(int midiNote, bool &isOnTrebleStaff,
   // Unified grand staff positioning - all notes relative to middle C
   VSTGUI::CRect rect = getViewSize();
   double centerY = rect.getHeight() / 2.0;
+  auto dim = getDimensions();
+  double staffLineHeight = dim.staffLineHeight();
+  double grandStaffGap = dim.grandStaffGap();
 
-  // Middle C position (the invisible line between treble and bass staves)
+  // Calculate staff centers (matching drawStaff positioning)
+  double trebleStaffCenter =
+      centerY - (grandStaffGap / 2.0) - (staffLineHeight * 2.0);
+  double bassStaffCenter =
+      centerY + (grandStaffGap / 2.0) + (staffLineHeight * 2.0);
+
+  // Middle C position is between the staves
   double middleCPosition = centerY;
 
   // Determine if note needs accidental based on key signature
@@ -621,7 +658,7 @@ double NotationView::getStaffPosition(int midiNote, bool &isOnTrebleStaff,
   isOnTrebleStaff = (midiNote >= 60); // Middle C and above go to treble
 
   // Calculate staff position relative to middle C
-  // Each white key step = half staff line height (4 pixels)
+  // Each white key step = half staff line height
 
   // Calculate white key steps directly from note's octave and white key class
   // MIDI note 60 = C4 (middle C), so octave = (midiNote / 12) - 1
@@ -639,7 +676,7 @@ double NotationView::getStaffPosition(int midiNote, bool &isOnTrebleStaff,
   // Calculate final position: middle C + (white key steps * half staff line
   // height) Negative steps go up (treble), positive steps go down (bass)
   double staffPosition =
-      middleCPosition - (whiteKeyStepsFromMiddleC * (STAFF_LINE_HEIGHT / 2.0));
+      middleCPosition - (whiteKeyStepsFromMiddleC * (staffLineHeight / 2.0));
 
   return staffPosition;
 }
@@ -662,15 +699,6 @@ bool NotationView::needsLedgerLine(int midiNote, bool isOnTrebleStaff) {
   }
 
   return false; // Note is on a staff line or space, no ledger line needed
-}
-
-//------------------------------------------------------------------------
-double
-NotationView::getHorizontalOffset(int noteIndex,
-                                  const std::vector<double> &staffPositions) {
-  // Simple horizontal spacing - just spread notes out evenly
-  // More sophisticated logic could handle overlapping notes
-  return noteIndex * 30.0; // 30 pixels apart
 }
 
 //------------------------------------------------------------------------
@@ -707,6 +735,11 @@ bool NotationView::needsSideBySidePositioning(
   if (group.size() <= 1)
     return false;
 
+  auto dim = getDimensions();
+  double halfStaffLineHeight = dim.staffLineHeight() / 2.0;
+  double positionTolerance =
+      halfStaffLineHeight * 0.5; // 0.25 * staffLineHeight
+
   // Check if any notes are on the same staff position (same Y coordinate)
   // or if notes are on adjacent staff positions
   for (size_t i = 0; i < group.size(); i++) {
@@ -719,13 +752,14 @@ bool NotationView::needsSideBySidePositioning(
       double posDiff = std::abs(pos1 - pos2);
 
       // Same position (like C and C#) - need side-by-side
-      if (posDiff < 2.0) {
+      if (posDiff < positionTolerance) {
         return true;
       }
 
       // Adjacent staff positions (line and space) - need side-by-side
-      if (posDiff >= 3.5 &&
-          posDiff <= 4.5) { // Half staff line height = 4 pixels
+      if (posDiff >= halfStaffLineHeight * 0.875 &&
+          posDiff <= halfStaffLineHeight *
+                         1.125) { // Half staff line height ± tolerance
         return true;
       }
     }
