@@ -4,17 +4,14 @@
 
 #pragma once
 
+#include "key_signature.h"
 #include "pluginterfaces/vst/ivstevents.h"
-#include "pluginterfaces/vst/ivstmidicontrollers.h"
 #include "public.sdk/source/vst/vstaudioeffect.h"
 #include <mutex>
 #include <set>
 #include <vector>
 
 namespace Ursulean {
-
-// Forward declaration
-enum KeySignature;
 
 //------------------------------------------------------------------------
 //  NotationChordHelperProcessor

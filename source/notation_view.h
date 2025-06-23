@@ -4,17 +4,13 @@
 
 #pragma once
 
-#include "vstgui/lib/cbitmap.h"
-#include "vstgui/lib/ccolor.h"
+#include "key_signature.h"
 #include "vstgui/lib/cdrawcontext.h"
 #include "vstgui/lib/cview.h"
 #include <map>
 #include <vector>
 
 namespace Ursulean {
-
-// Forward declaration to avoid circular include
-enum KeySignature;
 
 //------------------------------------------------------------------------
 // NotationView - Custom view for displaying musical notation

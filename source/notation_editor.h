@@ -4,17 +4,16 @@
 
 #pragma once
 
+#include "key_signature.h"
 #include "notation_view.h"
+#include "vstgui/lib/controls/ccontrol.h"
 #include "vstgui/lib/controls/coptionmenu.h"
 #include "vstgui/plugin-bindings/vst3editor.h"
 
 namespace Ursulean {
 
-// Forward declaration to avoid circular include
-enum KeySignature;
-
 //------------------------------------------------------------------------
-// NotationEditor - Custom VST3 Editor with notation display
+// NotationEditor - Main editor view for the VST3 plugin
 //------------------------------------------------------------------------
 class NotationEditor : public VSTGUI::VST3Editor {
 public:

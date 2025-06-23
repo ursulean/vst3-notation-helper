@@ -4,10 +4,7 @@
 
 #include "controller.h"
 #include "base/source/fstreamer.h"
-#include "cids.h"
 #include "notation_editor.h"
-#include "vstgui/lib/cviewcontainer.h"
-#include "vstgui/plugin-bindings/vst3editor.h"
 
 using namespace Steinberg;
 

@@ -56,7 +56,7 @@ jobs:
 
     - name: Verify VST3 file exists
       run: |
-        if [ -d "build/NotationChordHelper.vst3" ]; then
+        if [ -d "build/VST3/Release/NotationChordHelper.vst3" ]; then
           echo "✅ VST3 file built successfully"
         else
           echo "❌ VST3 file not found"

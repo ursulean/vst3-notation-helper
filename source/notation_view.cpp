@@ -3,7 +3,6 @@
 //------------------------------------------------------------------------
 
 #include "notation_view.h"
-#include "controller.h"
 #include "vstgui/lib/ccolor.h"
 #include "vstgui/lib/cpoint.h"
 #include "vstgui/lib/crect.h"

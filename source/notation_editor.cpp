@@ -6,7 +6,6 @@
 #include "controller.h"
 #include "vstgui/lib/controls/coptionmenu.h"
 #include "vstgui/lib/controls/ctextlabel.h"
-#include "vstgui/lib/cviewcontainer.h"
 
 namespace Ursulean {
 
