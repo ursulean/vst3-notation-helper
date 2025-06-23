@@ -1,6 +1,8 @@
 # NotationChordHelper VST3 Plugin
 
-A VST3 plugin for musical notation assistance and chord analysis.
+A VST3 plugin for displaying musical notation and chord analysis.
+
+![image](resource/example.png)
 
 ## Features
 
@@ -20,7 +22,7 @@ A VST3 plugin for musical notation assistance and chord analysis.
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/NotationChordHelper.git
+   git clone https://github.com/ursulean/NotationChordHelper.git
    cd NotationChordHelper
    ```
 
@@ -51,7 +53,7 @@ Copy the `NotationChordHelper.vst3` bundle to your VST3 plugins directory:
 
 ## Releases
 
-Pre-compiled `.vst3` files are available in the [Releases](https://github.com/yourusername/NotationChordHelper/releases) section.
+Pre-compiled `.vst3` files are available in the [Releases](https://github.com/ursulean/NotationChordHelper/releases) section.
 
 ### Latest Release
 - **Windows**: Download `NotationChordHelper.vst3` from the latest release

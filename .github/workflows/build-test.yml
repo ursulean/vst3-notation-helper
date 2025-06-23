@@ -18,7 +18,7 @@ jobs:
     - name: Setup CMake
       uses: jwlawson/actions-setup-cmake@v1.14
       with:
-        cmake-version: '3.25.0'
+        cmake-version: '4.0.2'
 
     - name: Configure CMake
       run: cmake -B build -DCMAKE_BUILD_TYPE=Release
@@ -46,7 +46,7 @@ jobs:
     - name: Setup CMake
       uses: jwlawson/actions-setup-cmake@v1.14
       with:
-        cmake-version: '3.25.0'
+        cmake-version: '4.0.2'
 
     - name: Configure CMake
       run: cmake -B build -DCMAKE_BUILD_TYPE=Release
