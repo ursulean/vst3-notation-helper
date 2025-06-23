@@ -126,7 +126,7 @@ void NotationView::drawStaff(VSTGUI::CDrawContext *context,
       centerY + (grandStaffGap / 2.0) + (staffLineHeight * 2.0);
 
   // Position clefs and start of staff lines
-  double staffStartX = dim.width * 0.025; // Start staff 2.5% from edge
+  double staffStartX = rect.left + dim.leftMargin();
 
   // Draw treble staff lines
   for (int i = 0; i < 5; i++) {
@@ -228,7 +228,8 @@ void NotationView::drawNotes(VSTGUI::CDrawContext *context,
   double keySigWidth =
       numAccidentalsInKey * dim.accidentalSpacing() +
       (numAccidentalsInKey > 0 ? dim.keySignaturePadding() : 0);
-  double baseX = dim.leftMargin() + dim.clefWidth() + keySigWidth;
+  double baseX = rect.left + dim.leftMargin() + dim.clefWidth() + keySigWidth +
+                 dim.clefPadding();
   double groupOffsetX = 0;
 
   for (const auto &group : noteGroups) {
@@ -525,7 +526,8 @@ void NotationView::drawKeySignature(VSTGUI::CDrawContext *context,
   };
 
   auto dim = getDimensions();
-  double baseX = dim.leftMargin() + dim.clefWidth(); // Start after clefs
+  double baseX = rect.left + dim.leftMargin() + dim.clefWidth() +
+                 dim.keySignaturePadding();
 
   // Count accidentals to draw
   int numAccidentals = 0;

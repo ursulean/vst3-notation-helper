@@ -98,15 +98,15 @@ private:
         0.1; // 15% gap between staves
 
     // Layout margins and spacing
-    static constexpr double LEFT_MARGIN_RATIO =
-        0.15; // 15% for clefs and key signature
+    static constexpr double LEFT_MARGIN_RATIO = 0.025; // 2.5% left margin
     static constexpr double RIGHT_MARGIN_RATIO = 0.05; // 5% right margin
     static constexpr double CLEF_WIDTH_RATIO =
         0.1; // 10% of width for the clef symbol area
-
+    static constexpr double CLEF_PADDING_RATIO =
+        0.15; // 15% padding between clef and key signature
     // Spacing and positioning
     static constexpr double ACCIDENTAL_SPACING_RATIO =
-        0.025; // 2.5% between key sig accidentals
+        0.015; // 1.5% between key sig accidentals
     static constexpr double NOTE_GROUP_SPACING_RATIO =
         0.05; // 5% between chord groups
     static constexpr double LEDGER_LINE_WIDTH_RATIO =
@@ -114,7 +114,7 @@ private:
     static constexpr double ACCIDENTAL_OFFSET_RATIO =
         0.04; // 4% offset for accidentals from notes
     static constexpr double KEY_SIGNATURE_PADDING_RATIO =
-        0.03; // 3% padding around key signature
+        0.02; // 2% padding around key signature
 
     // Symbol drawing proportions (relative to smaller dimension for
     // consistency)
@@ -127,6 +127,7 @@ private:
     double noteWidth() const { return staffLineHeight() * 1.3; }
     double noteHeight() const { return staffLineHeight() * 0.94; }
     double clefWidth() const { return width * CLEF_WIDTH_RATIO; }
+    double clefPadding() const { return width * CLEF_PADDING_RATIO; }
     double leftMargin() const { return width * LEFT_MARGIN_RATIO; }
     double rightMargin() const { return width * RIGHT_MARGIN_RATIO; }
     double clefFontSize() const { return staffLineHeight() * 6.0; }
