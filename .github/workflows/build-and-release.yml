@@ -1,0 +1,97 @@
+name: Build and Release VST3 Plugin
+
+on:
+  push:
+    tags:
+      - 'v*' # Trigger on version tags like v1.0.0
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Setup CMake
+      uses: jwlawson/actions-setup-cmake@v1.14
+      with:
+        cmake-version: '3.24.0'
+
+    - name: Configure CMake
+      run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+    - name: Build
+      run: cmake --build build --config Release
+
+    - name: Create Windows release directory
+      run: |
+        mkdir -p release/win
+        cp -r build/VST3/Release/NotationChordHelper.vst3 release/win/
+
+    - name: Upload Windows artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: NotationChordHelper-Windows
+        path: release/win/
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Setup CMake
+      uses: jwlawson/actions-setup-cmake@v1.14
+      with:
+        cmake-version: '3.24.0'
+
+    - name: Configure CMake
+      run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+    - name: Build
+      run: cmake --build build --config Release
+
+    - name: Create macOS release directory
+      run: |
+        mkdir -p release/mac
+        cp -r build/VST3/Release/NotationChordHelper.vst3 release/mac/
+
+    - name: Upload macOS artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: NotationChordHelper-macOS
+        path: release/mac/
+
+  create-release:
+    needs: [build-windows, build-macos]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - name: Download Windows artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: NotationChordHelper-Windows
+        path: release/win/
+
+    - name: Download macOS artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: NotationChordHelper-macOS
+        path: release/mac/
+
+    - name: Create release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          release/win/NotationChordHelper.vst3
+          release/mac/NotationChordHelper.vst3
+        generate_release_notes: true
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 

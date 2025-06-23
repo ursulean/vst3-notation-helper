@@ -1,0 +1,64 @@
+name: Build Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Setup CMake
+      uses: jwlawson/actions-setup-cmake@v1.14
+      with:
+        cmake-version: '3.24.0'
+
+    - name: Configure CMake
+      run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+    - name: Build
+      run: cmake --build build --config Release
+
+    - name: Verify VST3 file exists
+      run: |
+        if (Test-Path "build/VST3/Release/NotationChordHelper.vst3") {
+          Write-Host "✅ VST3 file built successfully"
+        } else {
+          Write-Host "❌ VST3 file not found"
+          exit 1
+        }
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Setup CMake
+      uses: jwlawson/actions-setup-cmake@v1.14
+      with:
+        cmake-version: '3.24.0'
+
+    - name: Configure CMake
+      run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+    - name: Build
+      run: cmake --build build --config Release
+
+    - name: Verify VST3 file exists
+      run: |
+        if [ -d "build/NotationChordHelper.vst3" ]; then
+          echo "✅ VST3 file built successfully"
+        else
+          echo "❌ VST3 file not found"
+          exit 1
+        fi 
