@@ -115,7 +115,7 @@ void NotationView::drawStaff(VSTGUI::CDrawContext *context,
   context->setFrameColor(VSTGUI::CColor(0, 0, 0, 255)); // Black lines
 
   auto dim = getDimensions();
-  double centerY = rect.getHeight() / 2.0;
+  double centerY = rect.top + rect.getHeight() / 2.0;
   double staffLineHeight = dim.staffLineHeight();
   double grandStaffGap = dim.grandStaffGap();
 
@@ -427,7 +427,7 @@ void NotationView::drawLedgerLinesForNote(VSTGUI::CDrawContext *context,
                                           double x, double noteY,
                                           int midiNote) {
   VSTGUI::CRect rect = getViewSize();
-  double centerY = rect.getHeight() / 2.0;
+  double centerY = rect.top + rect.getHeight() / 2.0;
   auto dim = getDimensions();
   double staffLineHeight = dim.staffLineHeight();
   double grandStaffGap = dim.grandStaffGap();
@@ -600,16 +600,9 @@ double NotationView::getStaffPosition(int midiNote, bool &isOnTrebleStaff,
                                       bool &isNatural) {
   // Unified grand staff positioning - all notes relative to middle C
   VSTGUI::CRect rect = getViewSize();
-  double centerY = rect.getHeight() / 2.0;
+  double centerY = rect.top + rect.getHeight() / 2.0;
   auto dim = getDimensions();
   double staffLineHeight = dim.staffLineHeight();
-  double grandStaffGap = dim.grandStaffGap();
-
-  // Calculate staff centers (matching drawStaff positioning)
-  double trebleStaffCenter =
-      centerY - (grandStaffGap / 2.0) - (staffLineHeight * 2.0);
-  double bassStaffCenter =
-      centerY + (grandStaffGap / 2.0) + (staffLineHeight * 2.0);
 
   // Middle C position is between the staves
   double middleCPosition = centerY;
