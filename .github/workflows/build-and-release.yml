@@ -25,16 +25,16 @@ jobs:
     - name: Build
       run: cmake --build build --config Release
 
-    - name: Create Windows release directory
+    - name: Create Windows release zip
       run: |
-        mkdir -p release/win
-        cp -r build/VST3/Release/NotationChordHelper.vst3 release/win/
+        mkdir -p release
+        powershell Compress-Archive -Path "build/VST3/Release/NotationChordHelper.vst3" -DestinationPath "release/NotationChordHelper-Windows.zip"
 
     - name: Upload Windows artifacts
       uses: actions/upload-artifact@v4
       with:
         name: NotationChordHelper-Windows
-        path: release/win/
+        path: release/NotationChordHelper-Windows.zip
 
   build-macos:
     runs-on: macos-latest
@@ -55,16 +55,17 @@ jobs:
     - name: Build
       run: cmake --build build --config Release
 
-    - name: Create macOS release directory
+    - name: Create macOS release zip
       run: |
-        mkdir -p release/mac
-        cp -r build/VST3/Release/NotationChordHelper.vst3 release/mac/
+        mkdir -p release
+        cd build/VST3/Release
+        zip -r ../../../release/NotationChordHelper-macOS.zip NotationChordHelper.vst3
 
     - name: Upload macOS artifacts
       uses: actions/upload-artifact@v4
       with:
         name: NotationChordHelper-macOS
-        path: release/mac/
+        path: release/NotationChordHelper-macOS.zip
 
   create-release:
     needs: [build-windows, build-macos]
@@ -76,20 +77,20 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         name: NotationChordHelper-Windows
-        path: release/win/
+        path: release/
 
     - name: Download macOS artifacts
       uses: actions/download-artifact@v4
       with:
         name: NotationChordHelper-macOS
-        path: release/mac/
+        path: release/
 
     - name: Create release
       uses: softprops/action-gh-release@v1
       with:
         files: |
-          release/win/NotationChordHelper.vst3
-          release/mac/NotationChordHelper.vst3
+          release/NotationChordHelper-Windows.zip
+          release/NotationChordHelper-macOS.zip
         generate_release_notes: true
         draft: false
         prerelease: false
