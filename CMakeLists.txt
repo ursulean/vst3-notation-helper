@@ -5,11 +5,6 @@ option(SMTG_ENABLE_VST3_HOSTING_EXAMPLES "Enable VST 3 Hosting Examples" OFF)
 
 set(CMAKE_OSX_DEPLOYMENT_TARGET 10.13 CACHE STRING "")
 
-set(vst3sdk_SOURCE_DIR "C:/Users/Paul/Desktop/dev/vst3sdk")
-if(NOT vst3sdk_SOURCE_DIR)
-    message(FATAL_ERROR "Path to VST3 SDK is empty!")
-endif()
-
 project(NotationChordHelper
     # This is your plug-in version number. Change it here only.
     # Version number symbols usable in C++ can be found in
@@ -18,9 +13,8 @@ project(NotationChordHelper
     DESCRIPTION "NotationChordHelper VST 3 Plug-in"
 )
 
-set(SMTG_VSTGUI_ROOT "${vst3sdk_SOURCE_DIR}")
+add_subdirectory(external)
 
-add_subdirectory(${vst3sdk_SOURCE_DIR} ${PROJECT_BINARY_DIR}/vst3sdk)
 smtg_enable_vst3_sdk()
 
 smtg_add_vst3plugin(NotationChordHelper
