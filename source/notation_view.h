@@ -34,6 +34,7 @@ private:
   void drawStaff(VSTGUI::CDrawContext *context, const VSTGUI::CRect &rect);
   void drawTrebleClef(VSTGUI::CDrawContext *context, double x, double y);
   void drawBassClef(VSTGUI::CDrawContext *context, double x, double y);
+  void drawNoteNames(VSTGUI::CDrawContext *context, const VSTGUI::CRect &rect);
   void drawNotes(VSTGUI::CDrawContext *context, const VSTGUI::CRect &rect);
   void drawNote(VSTGUI::CDrawContext *context, double x, double y,
                 bool filled = true);

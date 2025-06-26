@@ -6,9 +6,11 @@ A VST3 plugin for displaying musical notation and chord analysis.
 
 ## Features
 
-- VST3 compatible plugin
+- Displays MIDI input on piano grand staff
+- All major key signatures supported
+- Chord analysis (Upcoming)
+- VST3 plugin
 - Cross-platform support (Windows and macOS)
-- Built with the VST3 SDK
 
 ## Building from Source
 

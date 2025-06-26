@@ -98,6 +98,9 @@ void NotationView::draw(VSTGUI::CDrawContext *context) {
   // Draw the staff
   drawStaff(context, rect);
 
+  // Draw note names on the right side
+  drawNoteNames(context, rect);
+
   // Draw the key signature
   drawKeySignature(context, rect);
 
@@ -182,6 +185,78 @@ void NotationView::drawBassClef(VSTGUI::CDrawContext *context, double x,
   double clefWidth = dim.clefWidth();
   VSTGUI::CRect textRect(x, y - fontSize / 2, x + clefWidth, y + fontSize / 2);
   context->drawString("𝄢", textRect, VSTGUI::kCenterText); // Unicode bass clef
+}
+
+//------------------------------------------------------------------------
+void NotationView::drawNoteNames(VSTGUI::CDrawContext *context,
+                                 const VSTGUI::CRect &rect) {
+  auto dim = getDimensions();
+  double centerY = rect.top + rect.getHeight() / 2.0;
+  double staffLineHeight = dim.staffLineHeight();
+  double grandStaffGap = dim.grandStaffGap();
+
+  // Calculate staff centers - same as in drawStaff
+  double trebleStaffCenter =
+      centerY - (grandStaffGap / 2.0) - (staffLineHeight * 2.0) - 1.0;
+  double bassStaffCenter =
+      centerY + (grandStaffGap / 2.0) + (staffLineHeight * 2.0) - 1.0;
+
+  // Set up font for note names
+  double fontSize = staffLineHeight; // Slightly larger than staff line height
+  auto font =
+      VSTGUI::makeOwned<VSTGUI::CFontDesc>("Arial", static_cast<int>(fontSize));
+  context->setFont(font);
+  context->setFontColor(VSTGUI::CColor(10, 10, 10, 255));
+
+  // Horizontal starting position (right half of staff)
+  double staffRight = rect.getWidth() - dim.rightMargin();
+  double staffLeft = rect.left + dim.leftMargin();
+  double staffMid = (staffLeft + staffRight) / 2.0;
+  double baseX =
+      staffMid + (staffRight - staffMid) * 0.25; // 25% toward right edge
+  double letterSpacing = fontSize * 1.1;         // Space between letters
+
+  // Treble clef note names (from bottom to top)
+  // Lines: E G B D F
+  // Spaces: F A C E
+  const char *trebleLineNotes[] = {"E", "G", "B", "D", "F"};
+  const char *trebleSpaceNotes[] = {"F", "A", "C", "E"};
+
+  // Draw treble clef line note letters
+  for (int i = 0; i < 5; i++) {
+    double x = baseX + i * letterSpacing;
+    double y = trebleStaffCenter + (staffLineHeight * (2 - i));
+    VSTGUI::CRect textRect(x, y - fontSize / 2, x + fontSize, y + fontSize / 2);
+    context->drawString(trebleLineNotes[i], textRect, VSTGUI::kCenterText);
+  }
+  // Draw treble clef space note letters to the right of the line notes
+  for (int i = 0; i < 4; i++) {
+    double x = baseX + (i + 5) * letterSpacing;
+    double y = trebleStaffCenter + (staffLineHeight * (1.5 - i));
+    VSTGUI::CRect textRect(x, y - fontSize / 2, x + fontSize, y + fontSize / 2);
+    context->drawString(trebleSpaceNotes[i], textRect, VSTGUI::kCenterText);
+  }
+
+  // Bass clef note names (from bottom to top)
+  // Lines: G B D F A
+  // Spaces: A C E G
+  const char *bassLineNotes[] = {"G", "B", "D", "F", "A"};
+  const char *bassSpaceNotes[] = {"A", "C", "E", "G"};
+
+  // Draw bass clef line note letters
+  for (int i = 0; i < 5; i++) {
+    double x = baseX + i * letterSpacing;
+    double y = bassStaffCenter + (staffLineHeight * (2 - i));
+    VSTGUI::CRect textRect(x, y - fontSize / 2, x + fontSize, y + fontSize / 2);
+    context->drawString(bassLineNotes[i], textRect, VSTGUI::kCenterText);
+  }
+  // Draw bass clef space note letters to the right of the line notes
+  for (int i = 0; i < 4; i++) {
+    double x = baseX + (i + 5) * letterSpacing;
+    double y = bassStaffCenter + (staffLineHeight * (1.5 - i));
+    VSTGUI::CRect textRect(x, y - fontSize / 2, x + fontSize, y + fontSize / 2);
+    context->drawString(bassSpaceNotes[i], textRect, VSTGUI::kCenterText);
+  }
 }
 
 //------------------------------------------------------------------------
